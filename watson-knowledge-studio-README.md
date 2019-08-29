@@ -2,21 +2,23 @@
 
 ## Introduction
 
-Use IBM Watson™ Knowledge Studio to create a machine learning model that understands the linguistic nuances, meaning, and relationships specific to your industry or to create a rule-based model that finds entities in documents based on rules that you define.
+Use IBM Watson™ Knowledge Studio (WKS) to create a machine learning model that understands the linguistic nuances, meaning, and relationships specific to your industry or to create a rule-based model that finds entities in documents based on rules that you define.
 
 To become a subject matter expert in a given industry or domain, Watson must be trained. You can facilitate the task of training Watson with Knowledge Studio.
 
 ## Chart Details
 
-This chart installs an ICP4D add-on of Watson Knowledge Studio. Once the installation is completed, Watson Knowledge Studio add-on becomes available on ICP4D console.
+This chart installs an IBM Cloud Pak for Data (ICP4D) add-on of Watson Knowledge Studio. Once the installation is completed, Watson Knowledge Studio add-on becomes available on ICP4D console.
 
 This chart deploys the following microservices per install:
 
-- **WKS Front-end**: Provides the WKS tooling GUI.
-- **SIREG**: Tokenizers/parsers.
-- **SIRE Job queue**: ML Training framework that allows to queue and schedule jobs on Kubernetes.
+- **Watson Knowledge Studio Front-end**: Provides the WKS tooling user interface.
+- **Service Broker**: Manages provision/de-provision instances.
+- **Dispatcher**: Dispatches requests from gateway to Watson Knowledge Studio Front-end.
+- **SIREG**: Tokenizers/parsers by Statistical Information and Relation Extraction (SIRE).
+- **SIRE Job queue**: Machine Learning Training framework that allows to queue and schedule jobs on Kubernetes.
 - **SIRE Train Facade**: Manages interaction with the training framework and Minio storage.
-- **MMA**: Manages interaction with WKS Front-end and Train Facade.
+- **Model Management API**: Manages interaction with WKS Front-end and Train Facade.
 - **Watson Add-on**: Publishes WKS service as ICP4D add-on.
 
 This chart installs the following stores:
@@ -27,48 +29,51 @@ This chart installs the following stores:
 
 ## Prerequisites
 
-- IBM Cloud Private 3.1.2
-- Kubernetes 1.12.4 or later
-- Helm 2.9.1 or later
+- IBM Cloud Pak for Data 2.1.0.1
+- Kubernetes 1.11 or later
+- Helm 2.9.0 or later
 
 ## PodSecurityPolicy Requirements
 
-This chart requires a PodSecurityPolicy to be bound to the target namespace prior to installation.  Choose either a predefined PodSecurityPolicy or have your cluster administrator create a custom PodSecurityPolicy for you:
+### ICP PodSecurityPolicy Requirements
 
-- ICPv3.1 - Predefined  PodSecurityPolicy name: [`ibm-privileged-psp`](https://ibm.biz/cpkspec-psp)
+This chart requires a `PodSecurityPolicy` to be bound to the target namespace prior to installation. The predefined `PodSecurityPolicy` name: `ibm-restricted-psp` has been verified for this chart, if your target namespace is bound to this `PodSecurityPolicy` resource you can proceed to install the chart.
+
+- ICPv3.1 - Predefined  PodSecurityPolicy name: [`ibm-restricted-psp`](https://ibm.biz/cpkspec-psp)
 - Custom PodSecurityPolicy definition:
 
 ```yaml
 apiVersion: extensions/v1beta1
 kind: PodSecurityPolicy
 metadata:
+  annotations:
+    kubernetes.io/description: "This policy is the most restrictive,
+      requiring pods to run with a non-root UID, and preventing pods from accessing the host."
+    #apparmor.security.beta.kubernetes.io/allowedProfileNames: runtime/default
+    #apparmor.security.beta.kubernetes.io/defaultProfileName: runtime/default
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: docker/default
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: docker/default
   name: ibm-watson-ks-psp
 spec:
-  allowPrivilegeEscalation: true
+  allowPrivilegeEscalation: false
+  forbiddenSysctls:
+  - '*'
   fsGroup:
-    rule: RunAsAny
+    ranges:
+    - max: 65535
+      min: 1
+    rule: MustRunAs
   requiredDropCapabilities:
-  - MKNOD
-  allowedCapabilities:
-  - SETPCAP
-  - AUDIT_WRITE
-  - CHOWN
-  - NET_RAW
-  - DAC_OVERRIDE
-  - FOWNER
-  - FSETID
-  - KILL
-  - SETUID
-  - SETGID
-  - NET_BIND_SERVICE
-  - SYS_CHROOT
-  - SETFCAP
+  - ALL
   runAsUser:
-    rule: RunAsAny
+    rule: MustRunAsNonRoot
   seLinux:
     rule: RunAsAny
   supplementalGroups:
-    rule: RunAsAny
+    ranges:
+    - max: 65535
+      min: 1
+    rule: MustRunAs
   volumes:
   - configMap
   - emptyDir
@@ -76,9 +81,13 @@ spec:
   - secret
   - downwardAPI
   - persistentVolumeClaim
-  forbiddenSysctls:
-  - '*'
 ```
+
+### Red Hat OpenShift SecurityContextConstraints Requirements
+
+This chart requires a `SecurityContextConstraints` (SCC) to be bound to the target namespace prior to installation. To meet this requirement there may be cluster scoped as well as namespace scoped pre and post actions that need to occur.
+
+The default `SecurityContextConstraints` name: [`restricted`](https://ibm.biz/cpkspec-scc) has been verified for this chart, if your target namespace is bound to this `SecurityContextConstraints` resource you can proceed to install the chart.
 
 ## Resources Required
 
@@ -90,59 +99,45 @@ In addition to the [general hardware requirements and recommendations](https://w
 
 ### Storage
 
-[Local volumes](https://kubernetes.io/docs/concepts/storage/volumes/#local) can be used as a storage type for this chart. Following numbers of persistent volumes are required by data stores.
+[NFS](https://kubernetes.io/docs/concepts/storage/volumes/#nfs) and [Local volumes](https://kubernetes.io/docs/concepts/storage/volumes/#local) can be used as a storage type for this chart. Following numbers of persistent volumes are required by data stores. Note that Local volumes is supported only on IBM Cloud Private.
 
-| Component  | Number of replicas | Space per PVC | Storage type  | Number of PVs |
-| ---------- | :----------------: | ------------- | ------------- | :-----------: |
-| PostgreSQL |         2          | 10 Gi         | local-storage |       2       |
-| Minio      |         4          | 10 Gi         | local-storage |       4       |
-| MongoDB    |         2          | 20 Gi         | local-storage |       2       |
+| Component  | Number of replicas | Space per PVC | Number of PVs |
+| ---------- | :----------------: | ------------- | :-----------: |
+| PostgreSQL |         2          | 10 Gi         |       2       |
+| Minio      |         4          | 10 Gi         |       4       |
+| MongoDB    |         2          | 20 Gi         |       2       |
 
-## Installing the Chart
+## Installing the Chart into ICP4D on IBM Cloud Private
 
 ### Setup environment
 
-1. Initialize Helm client by running the following command. For further details of Helm CLI setup, see [Installing the Helm CLI (helm)](https://www.ibm.com/support/knowledgecenter/SSBS6K_3.1.2/app_center/create_helm_cli.html)
+1. SSH login to a master node
 
-    ```bash
-    export HELM_HOME={helm_home_dir}
-    helm init --client-only
-    ```
-
-     - `{helm_home_dir}` is your Helm config directory. For example `~/.helm`.
-
-1. Login to the ICP cluster and target the namespace the chart will be deployed using `cloudctl`. See the [installation documentation](https://cloud.ibm.com/docs/services/watson-knowledge-studio-data?topic=watson-knowledge-studio-data-install) for more detail.
+1. Login to your cluster.
 
     ```bash
     cloudctl login -a https://{cluster_CA_domain}:8443 -u {user} -p {password}
     ```
 
-1. Create a Kubernetes namespace with `ibm-priveleged-psp` PSP. See the [installation documentation](https://cloud.ibm.com/docs/services/watson-knowledge-studio-data?topic=watson-knowledge-studio-data-install) for more detail.
+    See the [installation documentation](https://cloud.ibm.com/docs/services/watson-knowledge-studio-data?topic=watson-knowledge-studio-data-install) for more detail.
 
-1. Get a certificate from your cluster and install it to Docker or add the {cluster_CA_domain} as a Docker Daemon insecure registry. You must do one or the other for Docker to be able to pull from your cluster.
+1. Create a Kubernetes namespace.
 
-    See [Configuring authentication for the Docker CLI](https://www.ibm.com/support/knowledgecenter/SSBS6K_3.1.2/manage_images/configuring_docker_cli.html).
+   - Create a Kubernetes namespace with [`ibm-restricted-psp`](https://ibm.biz/cpkspec-psp) PSP. See the [installation documentation](https://cloud.ibm.com/docs/services/watson-knowledge-studio-data?topic=watson-knowledge-studio-data-install) for more detail.
 
 1. Login to the docker registry like the following.
 
     ```bash
-    docker login {cluster_CA_domain}:8500
+    docker login {cluster_CA_domain}:8500 -u {user} -p {password}
     ```
 
-1. To load the file from Passport Advantage into IBM Cloud Private, enter the following command in the IBM Cloud Private command line interface.
+1. Change target namespace
 
     ```bash
     cloudctl target -n {namespace_name}
-    cloudctl catalog load-archive --archive {compressed_file_name} --registry {cluster_CA_domain}:8500/{namespace_name}
     ```
 
-    - `{compressed_file_name}` is the name of the file that you downloaded from Passport Advantage.
-    - `{namespace_name}` is the Docker namespace that hosts the Docker image. This is the namespace you created in Step 1.
-1. Once loading PPA is finished, the Helm chart of the IBM Watson Knowledge Studio is added to the local Helm repository of the cluster. To install the chart, add cluster local helm repository `local-charts` to your Helm CLI. See [Adding the internal Helm repository to Helm CLI](https://www.ibm.com/support/knowledgecenter/en/SSBS6K_3.1.2/app_center/add_int_helm_repo_to_cli.html) for more detail.
-
-    ```bash
-    sudo helm repo add local-charts https://{cluster_CA_domain}:8443/helm-repo/charts --ca-file $HELM_HOME/ca.pem --cert-file $HELM_HOME/cert.pem --key-file $HELM_HOME/key.pem
-    ```
+    - `{namespace_name}` is the namespace you created in Step 3.
 
 1. Create a YAML file like the following, then run the apply command on the YAML file that you create. For example `kubectl apply -f image_policy.yaml`. For further details of ImagePolicy, see [Enforcing container image security](https://www.ibm.com/support/knowledgecenter/en/SSBS6K_3.1.2/manage_images/image_security.html)
 
@@ -151,23 +146,24 @@ In addition to the [general hardware requirements and recommendations](https://w
     kind: ImagePolicy
     metadata:
       name: icp-image-policy
-      namespace: {namespace}
+      namespace: {namespace_name}
     spec:
       repositories:
-      - name: '{cluster_CA_domain}:8500/{namespace}/*'
+      - name: '{cluster_CA_domain}:8500/{namespace_name}/*'
     ```
 
-    - `{namespace}`: your target namespace
+    - `{namespace_name}`: your target namespace
     - `{cluster_CA_domain}`: your cluster CA domain name
 
 1. To meet network security policy for ICP4D addon, update label of the namespaces by the following 2 commands.
 
     ```bash
     kubectl label --overwrite namespace zen ns=zen
-    kubectl label --overwrite namespace {namespace} ns={namespace}
+    kubectl label --overwrite namespace {namespace_name} ns={namespace_name}
     ```
 
-### Preparing persistent volumes
+### Preparing persistent volumes for local-storage class
+*You need this step only when you use local-storage as Persistent Volume.*
 
 This chart uses persistent volumes for data stores. Local storage can be used for this chart. To create a persistent volume with `local-storage` storage class, you can define each volume configuration in a YAML file, and then use the `kubectl` command line to push the configuration changes to the cluster. See [Kubernetes documentation](https://kubernetes.io/docs/concepts/storage/volumes/#local) for more details about local storage.
 
@@ -223,15 +219,107 @@ See the [installation document](https://cloud.ibm.com/docs/services/watson-knowl
 
 ### Deployment
 
-To install the chart, run the following command and follow the instruction:
+To install the addon, run the following command:
 
 ```bash
-helm install local-charts/ibm-watson-ks-prod -n {release_name}  --timeout 1800 --tls
+cd /ibm/InstallPackage/components/
+./deploy.sh -d {compressed_file_name} -e {release_name_postfix}
 ```
 
-- `{release_name}` is the Helm release name of this installation.
+- `{compressed_file_name}` is the name of the file that you downloaded from Passport Advantage.
+- `{release_name_postfix}` is the postfix of Helm release name of this installation.
 
-### Verification of deployment
+The command will interactively ask you the following information, so answer like the following.
+
+| Question                                                      | Answer                                                                                                                                |
+| ------------------------------------------------------------  | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Do you agree with the terms and conditions in {license_URL}?  | If you accept the license agreement, answer `a`. The chart can be installed without this acceptance.                                  |
+| Which namespace do you want to install in?                    | Namespace name same as previous `{namespace_name}`                                                                                    |
+| Where the Docker repository                                   | `{cluster_CA_domain}:8500/{namespace_name}`.                                                                                          |
+| Which StorageClass do you want to use                         | `NFS` or `local-storage`                                                                                                              |
+| [In using NFS only] NFS server IP or hostname, and mount path | Your NFS server IP or hostname, and mount path.                                                                                       |
+
+## Installing the Chart into ICP4D on OpenShift
+
+### Setup environment
+
+1. SSH login to a master node
+
+1. Login to your cluster.
+
+    ```bash
+    oc login -u {user} -p {password}
+    ```
+    See the [Basic Setup and Login](https://docs.openshift.com/container-platform/3.11/cli_reference/get_started_cli.html#basic-setup-and-login) for more detail
+
+1. Create a new OpenShift project.
+
+    Create a new project with [`restricted`](https://docs.openshift.com/enterprise/3.0/architecture/additional_concepts/authorization.html#security-context-constraints) SCC. For example, you can create the new project by the following command. No operation to change SCC is required because default SCC is `restricted`.
+    ```bash
+    oc new-project {namespace_name} --description="{description_text}" --display-name="{display_name}"
+    ```
+    - `{namespace_name}` is name of creating project. This command also creates namespace named same as the project.
+    - `{description_text}` is text to set as description of this project.
+    - `{display_name}` is string to set as display name of this project.
+
+    See the [Projects](https://docs.openshift.com/container-platform/3.11/dev_guide/projects.html) and [Add an SCC to a User, Group, or Project](https://docs.openshift.com/container-platform/3.11/admin_guide/manage_scc.html#add-scc-to-user-group-project) for more detail.
+
+1. Login to the docker registry like the following.
+
+    ```bash
+    docker login docker-registry.default.svc:5000 -u $(oc whoami) -p $(oc whoami -t)
+    ```
+
+1. Change target namespace
+
+    ```bash
+    oc project {namespace_name}
+    ```
+
+    - `{namespace_name}` is the namespace you created in Step 3.
+
+1. To meet network security policy for ICP4D addon, update label of the namespaces by the following 2 commands.
+
+    ```bash
+    kubectl label --overwrite namespace zen ns=zen
+    kubectl label --overwrite namespace {namespace_name} ns={namespace_name}
+    ```
+
+### Deployment
+
+To install the addon, run the following command:
+
+```bash
+oc get secret | grep -Eo 'default-dockercfg[^ ]*' | xargs -n 1 oc get secret -o yaml | sed 's/default-dockercfg[^ ]*/sa-{namespace_name}/g' | oc create -f -
+cd /ibm/InstallPackage/components/
+./deploy.sh -o -d {compressed_file_name} -e {release_name_postfix}
+```
+
+- `{compressed_file_name}` is the name of the file that you downloaded from Passport Advantage.
+- `{release_name_postfix}` is the postfix of Helm release name of this installation.
+
+The first command line creates a copy of `default-dockercfg-****` secret named `sa-{namespace_name}` used in the installation.
+
+`deploy.sh` command will interactively ask you the following information, so answer like the following.
+
+| Question                                                     | Answer                                                                                                                                |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Do you agree with the terms and conditions in {license_URL}? | If you accept the license agreement, answer `a`. The chart can be installed without this acceptance.                                  |
+| Which namespace do you want to install in?                   | Namespace name same as previous `{namespace_name}`                                                                                    |
+| Where the Docker repository                                  | `docker-registry.default.svc:5000/{namespace_name}`.                                                                                  |
+| Which StorageClass do you want to use                        | `NFS`                                                                                                                                 |
+| NFS server IP or hostname, and mount path                    | Your NFS server IP or hostname, and mount path.                                                                                       |
+
+
+If you meet `ErrImagePull` error in the addon installation, try the followoing command to update the secret `sa-{namespace_name}`.
+
+```bash
+oc delete secret sa-{namespace_name}
+oc get secret | grep -Eo 'default-dockercfg[^ ]*' | xargs -n 1 oc get secret -o yaml | sed 's/default-dockercfg[^ ]*/sa-{namespace_name}/g' | oc create -f -
+```
+
+
+## Verification of deployment
 
 After installation completed successfully, you can verify the deployment by running `helm test`.
 
@@ -278,19 +366,33 @@ Before you can install a new version of the service on the same cluster, you mus
 ## Configuration
 
 The following table lists the configurable parameters of the WKS chart and their default values.
+These values can be changed on installation by specifying `-O` option of `deploy.sh`. For example, `./deploy.sh -O your_override_values.yaml`.
 
 ### Global parameters
 
-|    Parameter     |                                              Description                                              | Default |
-| ---------------- | ----------------------------------------------------------------------------------------------------- | ------- |
-| `license`        | Set `accept` if you accept the license agreement. The chart can be installed without this acceptance. | `""`    |
+|    Parameter    |                                              Description                                              |     Default     |
+| --------------- | ----------------------------------------------------------------------------------------------------- | --------------- |
+| `license`       | Set `accept` if you accept the license agreement. The chart can be installed without this acceptance. | `""`            |
+| `global.clusterDomain` | Cluster domain used by Kubernetes Cluster (the suffix for internal KubeDNS names).                    | `cluster.local` |
+| `cp4dConsolePort` | Port number of ICP4D console.                    | `31843` |
 
 ### WKS Front-end parameters
 
 |       Parameter        |                                                           Description                                                            | Default |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `replicaCount`         | Number of replicas for WKS Front-end deployment.                                                                                  | `2`     |
-| `frontend.initialUser` | Username of the first admin user in the WKS instance. The user also must be granted the access to the instance on ICP4D console. | `admin` |
+
+### Service Broker parameters
+
+|       Parameter        |                                                           Description                                                            | Default |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `replicas`         | Number of replicas for Service Broker deployment.                                                                                  | `2`     |
+
+### Dispatcher parameters
+
+|       Parameter        |                                                           Description                                                            | Default |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `replicas`         | Number of replicas for Dispatcher deployment.                                                                                  | `2`     |
 
 ### SIRE parameters
 
@@ -338,14 +440,11 @@ The following table lists the configurable parameters of the WKS chart and their
 
 |                 Parameter                  |                                                                                                                      Description                                                                                                                      |     Default     |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| `minio.mode`                               | Minio server mode. Valid options are `standalone` or `distributed`.                                                                                                                                                                                   | `distributed`   |
-| `minio.replicas`                           | Number of nodes (applicable only to Minio distributed mode). Must be 4 <= x <= 32                                                                                                                                                                     | `4`             |
+| `minio.replicas`                           | Number of nodes. Must be 4 <= x <= 32                                                                                                                                                                     | `4`             |
 | `minio.persistence.enabled`                | Use PV to store data on Minio.                                                                                                                                                                                                                        | `true`          |
 | `minio.persistence.size`                   | Size of persistent volume claim (PVC) for Minio.                                                                                                                                                                                                      | `10Gi`          |
-| `minio.persistence.existingClaim`          | Use an existing PVC to persist data for Minio.                                                                                                                                                                                                        | `""`            |
-| `minio.persistence.useDynamicProvisioning` | If enabled, the PVC will use a storageClassName to bind the volume for Minio.                                                                                                                                                                         | `true`         |
-| `minio.persistence.storageClass`           | Storage Class to bind PVC for Minio. You must specify a valid storage class if you selected `useDynamicProvisioning`.                                                                                                                                 | `local-storage`          |
-| `minio.persistence.accessMode`             | Persistent volume storage class for Minio. `ReadWriteOnce` or `ReadOnly`                                                                                                                                                                              | `ReadWriteOnce` |
+| `minio.persistence.storageClass`           | Storage Class to bind PVC for Minio.                                                                                                                                 | `local-storage`          |
+| `minio.persistence.accessMode`             | Persistent volume storage class for Minio.                                                                                                                                                                               | `ReadWriteOnce` |
 | `minio.persistence.subPath`                | Mount a sub directory of the persistent volume for Minio, if a sub directory is set.                                                                                                                                                                  | `""`            |
 
 ### PostgreSQL parameters
@@ -358,7 +457,7 @@ The following table lists the configurable parameters of the WKS chart and their
 | `postgresql.persistence.enabled`                | Use a PVC to persist data                                                                                                                                                                                                                                                        | `true`          |
 | `postgresql.persistence.useDynamicProvisioning` | Enables dynamic binding of Persistent Volume Claims to Persistent Volumes                                                                                                                                                                                                        | `true`          |
 | `postgresql.persistence.storageClassName`       | Storage class name of backing PVC                                                                                                                                                                                                                                                | `local-storage` |
-| `postgresql.persistence.accessMode`             | Use volume as ReadOnly or ReadWrite                                                                                                                                                                                                                                              | `ReadWriteOnce` |
+| `postgresql.persistence.accessMode`             | Persistent volume storage class for PostgreSQL.                                                                                                                                                                                                                                              | `ReadWriteOnce` |
 | `postgresql.persistence.size`                   | Size of data volume                                                                                                                                                                                                                                                              | `10Gi`          |
 | `postgresql.dataPVC.name`                       | Prefix that gets the created Persistent Volume Claims                                                                                                                                                                                                                            | `stolon-data`   |
 | `postgresql.dataPVC.selector.label`             | In case the persistence is enabled and useDynamicProvisioning is disabled the labels can be used to automatically bound persistent volumes claims to precreated persistent volumes. The persistent volumes to be used must have the specified label. Disabled if label is empty. | `""`            |
@@ -367,7 +466,7 @@ The following table lists the configurable parameters of the WKS chart and their
 ## Limitations
 
 - Only the `x86` architecture is supported.
-- The chart must be installed by a ClusterAdministrator.
+- The chart must be installed by a cluster administrator.
 
 ## Documentation
 
