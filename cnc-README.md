@@ -98,12 +98,15 @@ Perform the following steps to prepare to install the chart.
 Run the pre-installation scripts:
 
   1. On each cluster, run the `labelNamepsace.sh` script once:
+
      ```bash
      ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/labelNamespace.sh {ICP4D_namespace}
      ```
+
     where `{ICP4D_namespace}` is the namespace where IBM Cloud Pak for Data is installed; the standard value is `zen`. The specified namespace **must** have a label for the `NetworkPolicy` to work correctly. Only `nginx` and `zen` pods can to communicate with the pods in the namespace where the chart is installed.
 
   1. Before each installation, run the `deleteInstances.sh` script:
+  
     ```bash
     ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/deleteInstances.sh {ICP4D_namespace}
     ```
