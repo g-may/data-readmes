@@ -103,20 +103,21 @@ Run the pre-installation scripts:
      ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/labelNamespace.sh {ICP4D_namespace}
      ```
 
-    where `{ICP4D_namespace}` is the namespace where IBM Cloud Pak for Data is installed; the standard value is `zen`. The specified namespace **must** have a label for the `NetworkPolicy` to work correctly. Only `nginx` and `zen` pods can to communicate with the pods in the namespace where the chart is installed.
+     where `{ICP4D_namespace}` is the namespace where IBM Cloud Pak for Data is installed; the standard value is `zen`. The specified namespace **must** have a label for the `NetworkPolicy` to work correctly. Only `nginx` and `zen` pods can to communicate with the pods in the namespace where the chart is installed.
 
-  1. Before each installation, run the `deleteInstances.sh` script:
-  
-    ```bash
-    ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/deleteInstances.sh {ICP4D_namespace}
-    ```
-    where `{ICP4D_namespace}` is the namespace where IBM Cloud Pak for Data is installed; the standard value is `zen`. The script cleans up any instances that were deleted as part of a previous installation.
+  2. Before each installation, run the `deleteInstances.sh` script:
+
+     ```bash
+     ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/deleteInstances.sh c{ICP4D_namespace}
+     ```
+     where `{ICP4D_namespace}` is the namespace where IBM Cloud Pak for Data is installed; the standard value is `zen`. The script cleans up any instances that were deleted as part of a previous installation.
 
 ### Installing the chart
 
 Install the Helm chart:
 
   1. Run the `helm install` command:
+  
     ```bash
     helm install {path_to_untarred_archive}/ibm-watson-compare-comply-prod-1.1.6.tgz --name {release_name} --tls --namespace {namespace}
     ```
