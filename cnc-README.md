@@ -4,7 +4,7 @@
 
 ## Introduction
 
-IBM Watson&trade; Compare and Comply enables understanding of governing business documents with pre-trained models so enterprises can get started in minutes. The document conversion (programmatic and scanned PDF, TIFF, JPEG, Word) capabilities enable both machine-to-machine and machine-to-human readable formats. The table understanding, element classification, and comparison capabilities of Compare and Comply enable automation of complex business processes such as contract review and negotiation, invoice reconciliation, software entitlement verification, and more. Such automation of processes result in increased productivity, minimization of costs, and reduced exposure.
+IBM Watson&trade; Compare and Comply for IBM&reg; Cloud Pak for Data enables understanding of governing business documents with pre-trained models so enterprises can get started in minutes. The document conversion (programmatic and scanned PDF, TIFF, JPEG, Word) capabilities enable both machine-to-machine and machine-to-human readable formats. The table understanding, element classification, and comparison capabilities of Compare and Comply enable automation of complex business processes such as contract review and negotiation, invoice reconciliation, software entitlement verification, and more. Such automation of processes result in increased productivity, minimization of costs, and reduced exposure.
 
 Compare and Comply provides:
 
@@ -38,7 +38,7 @@ Perform the following steps to install of the Compare and Comply chart on IBM Cl
 
 ### Prerequisites
    
-  - IBM Cloud Pak for Data 2.1.0.1 or later OR Red Hat OpenShift 3.11 or later
+  - IBM Cloud Pak for Data 2.1.0.1 or later
   - Kubernetes 1.12 or later
   - Tiller 2.9.1 or later
 
@@ -72,7 +72,7 @@ Perform the following steps to prepare to install the chart.
     
 1. Untar the archive file:
    ```bash
-   tar -xvfz ibm-watson-compare-comply-prod-1.1.5.tgz -C {path/filename}
+   tar -xvfz ibm-watson-compare-comply-prod-1.1.6.tgz -C {path/filename}
    ```
     
 1. Log in to `cloudctl`:
@@ -99,24 +99,25 @@ Run the pre-installation scripts:
 
   1. On each cluster, run the `labelNamepsace.sh` script once:
      ```bash
-     ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/labelNamespace.sh {CP4D_namespace}
+     ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/labelNamespace.sh {ICP4D_namespace}
      ```
-    where `{CP4D_namespace}` is the namespace where Cloud Pak for Data is installed; the standard value is `zen`. The specified namespace **must** have a label for the `NetworkPolicy` to work correctly. Only `nginx` and `zen` pods can to communicate with the pods in the namespace where the chart is installed.
+    where `{ICP4D_namespace}` is the namespace where IBM Cloud Pak for Data is installed; the standard value is `zen`. The specified namespace **must** have a label for the `NetworkPolicy` to work correctly. Only `nginx` and `zen` pods can to communicate with the pods in the namespace where the chart is installed.
 
   1. Before each installation, run the `deleteInstances.sh` script:
     ```bash
-    ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/deleteInstances.sh {CP4D_namespace}
+    ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/deleteInstances.sh {ICP4D_namespace}
     ```
-    where `{CP4D_namespace}` is the namespace where Cloud Pak for Data is installed; the standard value is `zen`. The script cleans up any instances that were deleted as part of a previous installation.
+    where `{ICP4D_namespace}` is the namespace where IBM Cloud Pak for Data is installed; the standard value is `zen`. The script cleans up any instances that were deleted as part of a previous installation.
 
 ### Installing the chart
 
 Install the Helm chart:
 
   1. Run the `helm install` command:
-     ```bash
-      helm install {path_to_untarred_archive}/ibm-watson-compare-comply-prod-1.1.6.tgz --name {release_name} --tls --namespace {namespace}
+    ```bash
+    helm install {path_to_untarred_archive}/ibm-watson-compare-comply-prod-1.1.6.tgz --name {release_name} --tls --namespace {namespace}
     ```
+   
    **Note**: By default, `{namespace}` is `default`.
 
 ### Creating a Compare and Comply instance
