@@ -108,7 +108,7 @@ Run the pre-installation scripts:
   2. Before each installation, run the `deleteInstances.sh` script:
 
      ```bash
-     ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/deleteInstances.sh c{ICP4D_namespace}
+     ./ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration/deleteInstances.sh {ICP4D_namespace}
      ```
      where `{ICP4D_namespace}` is the namespace where IBM Cloud Pak for Data is installed; the standard value is `zen`. The script cleans up any instances that were deleted as part of a previous installation.
 
@@ -117,12 +117,12 @@ Run the pre-installation scripts:
 Install the Helm chart:
 
   1. Run the `helm install` command:
-  
-    ```bash
-    helm install {path_to_untarred_archive}/ibm-watson-compare-comply-prod-1.1.6.tgz --name {release_name} --tls --namespace {namespace}
-    ```
+
+     ```bash
+     helm install {path_to_untarred_archive}/ibm-watson-compare-comply-prod-1.1.6.tgz --name {release_name} --tls --namespace {namespace}
+     ```
    
-   **Note**: By default, `{namespace}` is `default`.
+     **Note**: By default, `{namespace}` is `default`.
 
 ### Creating a Compare and Comply instance
 
