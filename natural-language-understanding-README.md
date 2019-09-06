@@ -25,19 +25,20 @@ Pods:
 Statefulsets:
 
 * `ibm-etcd`
-* `postgres`
+* `postgres-keeper`
+* `ibm-minio`
 
 Secrets:
 
-* `nlu-shared-tls`: TLS key/cert pairs for NLU components.
-* `nlu-minio-access`: Authentication secrets for Minio.
-* `mma-postgres-auth-secret`: Authentication secret for accessing PostgresSql.
+* `{release-name}-nlu-tls`: TLS key/cert pairs for NLU components.
+* `{release-name}-nlu-minio-access-secret`: Authentication secrets for Minio.
+* `{release-name}-nlu-postgres-auth-secret`: Authentication secret for accessing PostgresSQL.
 
 ## Pre-install steps
 
 This script has to be run once per cluster by a cluster admin. Run: ./ibm_cloud_pak/pak_extensions/pre-install/ clusterAdministration/labelNamespace.sh ICP4D_NAMESPACE where ICP4D_NAMESPACE is the namespace where ICP4D is installed (usually zen).
 
-The ICP4D_NAMESPACE namespace must have a label for the NetworkPolicy to correctly work. Only nginx and zen pods will be able allowed to communicate with the pods in the namespace where this chart is installed.
+The ICP4D_NAMESPACE namespace must have a label for the NetworkPolicy to correctly work. Only nginx and zen pods will be allowed to communicate with the pods in the namespace where this chart is installed.
 
 ## Prerequisites
 
@@ -50,9 +51,9 @@ The ICP4D_NAMESPACE namespace must have a label for the NetworkPolicy to correct
 
 This chart requires a PodSecurityPolicy to be bound to the target namespace prior to installation. To meet this requirement there may be cluster scoped as well as namespace scoped pre and post actions that need to occur.
 
-The predefined PodSecurityPolicy name: [`ibm-anyuid-psp`](https://ibm.biz/cpkspec-psp) has been verified for this chart, if your target namespace is bound to this PodSecurityPolicy you can proceed to install the chart.
+The predefined PodSecurityPolicy name: [`ibm-restricted-psp`](https://ibm.biz/cpkspec-psp) has been verified for this chart, if your target namespace is bound to this PodSecurityPolicy you can proceed to install the chart.
 
-This chart also defines a custom PodSecurityPolicy which can be used to finely control the permissions/capabilities needed to deploy this chart. You can enable this custom PodSecurityPolicy using the ICP user interface or the supplied instructions/scripts in the pak_extension pre-install directory.
+This chart also defines a custom PodSecurityPolicy which can be used to finely control the permissions/capabilities needed to deploy this chart. You can enable this custom PodSecurityPolicy using the ICP4D user interface or the supplied instructions/scripts in the pak_extension pre-install directory.
 
     - From the user interface, you can copy and paste the following snippets to enable the custom PodSecurityPolicy
 
@@ -61,7 +62,7 @@ This chart also defines a custom PodSecurityPolicy which can be used to finely c
         apiVersion: extensions/v1beta1
         kind: PodSecurityPolicy
         metadata:
-          name: ibm-chart-dev-psp
+          name: ibm-watson-nlu-psp
         spec:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
@@ -88,9 +89,9 @@ This chart also defines a custom PodSecurityPolicy which can be used to finely c
 
 This chart requires a SecurityContextConstraints to be bound to the target namespace prior to installation. To meet this requirement there may be cluster scoped as well as namespace scoped pre and post actions that need to occur.
 
-The predefined SecurityContextConstraints name: [`ibm-anyuid-scc`](https://ibm.biz/cpkspec-scc) has been verified for this chart, if your target namespace is bound to this SecurityContextConstraints resource you can proceed to install the chart.
+The predefined SecurityContextConstraints name: [`restricted`](https://ibm.biz/cpkspec-scc) has been verified for this chart, if your target namespace is bound to this SecurityContextConstraints resource you can proceed to install the chart.
 
-This chart also defines a custom SecurityContextConstraints which can be used to finely control the permissions/capabilities needed to deploy this chart. You can enable this custom SecurityContextConstraints resource using the supplied instructions/scripts in the pak_extension pre-install directory.
+This chart also defines a custom SecurityContextConstraints which can be used to finely control the permissions/capabilities needed to deploy this chart.
 
     - From the user interface, you can copy and paste the following snippets to enable the custom SecurityContextConstraints
 
@@ -99,7 +100,7 @@ This chart also defines a custom SecurityContextConstraints which can be used to
         apiVersion: security.openshift.io/v1
         kind: SecurityContextConstraints
         metadata:
-          name: ibm-chart-dev-scc
+          name: ibm-watson-nlu-scc
         readOnlyRootFilesystem: false
         allowedCapabilities:
         - CHOWN
