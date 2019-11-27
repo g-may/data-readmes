@@ -16,10 +16,8 @@ Pods:
 * `ibm-watson-nlu-orchestrator` - Orchestrates processing among the various processing pods.
 * `ibm-watson-nlu-keywords` - Implements the keywords feature.
 * `ibm-watson-nlp-prod` - Tokenizes the incoming text.  Only English text is supported.
-* `ibm-watson-nms` - Used to import and export models.
-* `ibm-watson-mma` - Frontend to PostgresSql database for storing model information.
-* `ibm-watson-cs` - Enables Watson Natural Language Processing features, like Sentiment, Entities, and Categories
-* `ibm-watson-sire-runtime` - Relationship extraction engine for entities and relations
+* `ibm-watson-nms-prod` - Used to import and export models.
+* `ibm-watson-mma-prod` - Frontend to PostgresSql database for storing model information.
 * `ibm-etcd` - Database
 * `postgres-<keeper,proxy,sentinel>` - Database
 * `minio` - Database
