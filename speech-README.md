@@ -1,4 +1,4 @@
-# IBM Watson™ Speech Services 1.0.1
+# IBM Watson™ Speech Services 1.1.1
 
 ## Introduction
 
@@ -118,9 +118,9 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
     ```bash
     cd {compressed-file-dir}
-    tar -xvfz {compressed-file-name}
+    tar -xvf {compressed-file-name}
     cd charts
-    tar -xvfz ibm-watson-speech-prod-1.0.1.tar.gz
+    tar -xvf ibm-watson-speech-prod-1.1.1.tar.gz
     ```
 
     - `{compressed-file-dir}` is the directory where you downloaded {compressed-file-name} to.
@@ -152,7 +152,7 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
     cd {compressed-file-dir}/charts/ibm-watson-speech-prod/ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration
     ./labelNamespace.sh {namespace-name}
     ```
-    
+
     where `{namespace-name}` is the namespace where IBM Cloud Pak for Data is installed (normally `zen`).
 
 1. Create secrets.
@@ -287,13 +287,13 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 1.  Run the following command to download the chart from the IBM Cloud Private repository:
 
     ```bash
-    wget https://{cluster_CA_domain}:8443/helm-repo/requiredAssets/ibm-watson-speech-prod-1.0.1.tgz --no-check-certificate
+    wget https://{cluster_CA_domain}:8443/helm-repo/requiredAssets/ibm-watson-speech-prod-1.1.1.tgz --no-check-certificate
     ```
 
 1.  Extract the TAR file from the TGZ file, and then extract files from the TAR file by using the following command:
 
     ```bash
-    tar -xvzf /path/to/ibm-watson-speech-prod-1.0.1.tgz
+    tar -xvf /path/to/ibm-watson-speech-prod-1.1.1.tgz
     ```
 
 1.  Create persistent volumes for the service.
@@ -334,7 +334,7 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
     - Replace the following variables with the appropriate values for your cluster:
 
       - `{cluster4d-master-node}`: The hostname of the master node within the IBM Cloud Pak for Data cluster.
-      - `{name}`: A name that helps you identify this deployment. You can use the version number of the product, such as `1.0.1`.
+      - `{name}`: A name that helps you identify this deployment. You can use the version number of the product, such as `1.1.1`.
 
     - Apply the policy by running the following command:
 
@@ -523,7 +523,7 @@ spec:
 
 By default, Minio operats in `distributed` mode, which means that Minio is scheduled to run multiple instance on every worker node to assure storage high availability.
 
-To use HA optimally, you must specify an appropriate number of replicas. Set the number of replicas for distributed mode by running `external.minio.repliacs={number-of-cluster-nodes}`, where `{number-of-cluster-nodes}` is `4 <= x <= 32`. The default value is `4` replicas.
+To use HA optimally, you must specify an appropriate number of replicas. Set the number of replicas for distributed mode by running `external.minio.replicas={number-of-cluster-nodes}`, where `{number-of-cluster-nodes}` is `4 <= x <= 32`. The default value is `4` replicas.
 
 Minio also operates in `standalone` mode, which means that only one instance of Minio runs on an arbitrary worker node and its failure means that the service becomes available until a new instance is running and healthy. This option is sufficient for testing purposes but not for production.
 
@@ -782,7 +782,7 @@ You can perform an installation that includes only a subset of the language mode
 Installing all of the models/voices in the catalog substantially increases the memory requirements.
 Therefore, it is strongly recommended that you install only those languages that you intend to use.
 
-You can select the languages to be installed by checking or unchecking each of the models/voices in the 
+You can select the languages to be installed by checking or unchecking each of the models/voices in the
 `global.sttModels.*` or `global.ttsVoices.*` values. By default, the dynamic resource calculation
 feature is enabled; it automatically computes the exact amount of memory that is required for the selected models/voices.
 
