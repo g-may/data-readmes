@@ -1,4 +1,4 @@
-# IBM Watson™ Speech Services 1.1.1
+# IBM Watson™ Speech Services 1.1.2
 
 ## Introduction
 
@@ -26,9 +26,9 @@ This Helm chart deploys a single IBM Watson Speech Services instance.
 
 ### OpenShift software prerequisites
 
-- IBM Cloud Pak for Data V2.1.0.1
-- Kubernetes V1.11.0
-- Helm V2.9.0
+- IBM Cloud Pak for Data v2.1.0.1 or v2.5
+- Kubernetes v1.11.0
+- Helm v2.9.0
 
 Before installing the Speech Services solution, you must install and configure [`helm`](https://helm.sh/docs/using_helm/#installing-the-helm-client) and [`kubectl`](https://docs-icpdata.mybluemix.net/docs/content/SSQNUZ_current/com.ibm.icpdata.doc/zen/install/kubectl-access.html).
 
@@ -36,9 +36,7 @@ Before installing the Speech Services solution, you must install and configure [
 
 This chart requires a SecurityContextConstraints to be bound to the target namespace prior to installation. To meet this requirement there might be cluster-scoped as well as namespace-scoped pre and post actions that need to occur.
 
-The predefined SecurityContextConstraints name [`restricted`](https://ibm.biz/cpkspec-scc) has been verified for this chart. If your target namespace is bound to this SecurityContextConstraints resource you can proceed to install the chart.
-
-If necessary, run the following command to bind the `restricted` SecurityContextConstraints to your namespace:
+The predefined SecurityContextConstraints name [`restricted`](https://ibm.biz/cpkspec-scc) has been verified for this chart. If your target namespace is bound to this SecurityContextConstraints resource you can skip the rest of this section and proceed to install the chart. Otherwise, run the following command to bind the `restricted` SecurityContextConstraints to your namespace:
 
 ```bash
 oc adm policy add-scc-to-group restricted system:serviceaccounts:{namespace-name}
@@ -98,7 +96,7 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
     docker login -u $(oc whoami) -p $(oc whoami -t) {docker-registry}
     ```
 
-    - `{docker-registry}` is the address of the OpenShift docker registry; for example,  `docker-registry-default.apps.speech-openshift.ibm.com`. You can find the URL of the docker registry in the OpenShift console.
+    - `{docker-registry}` is the address of the OpenShift docker registry; for example,  `docker-registry-default.apps.speech-openshift.ibm.com`. You can find the URL of the docker registry in the OpenShift console. You may need to add `{docker-registry}` to your list of insecure registries in your local Docker preferences.
 
 1.  From the OpenShift command line tool, create the namespace in which to deploy the service; for example, `speech-services`. Use the following command to create the namespace:
 
@@ -120,7 +118,7 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
     cd {compressed-file-dir}
     tar -xvf {compressed-file-name}
     cd charts
-    tar -xvf ibm-watson-speech-prod-1.1.1.tar.gz
+    tar -xvf ibm-watson-speech-prod-1.1.2.tgz
     ```
 
     - `{compressed-file-dir}` is the directory where you downloaded {compressed-file-name} to.
@@ -142,7 +140,8 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 1.  Create persistent volumes for the service.
 
     - For a production deployment, consider using an IBM Cloud Pak for Data storage add-on or a storage option that is hosted outside the cluster.
-    - For a development deployment, you can use the `createLocalPVs.sh` script that is provided in the archive to create the local storage volumes.
+    - For a development deployment, you can run `createLocalPVs.sh` from inside the cluster to create the local storage volumes. The script is located at `ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration`.
+    - If you want to use [Portworx](https://portworx.com/) as the persistent storage solution see section *Using Portworx as storage solution*.
 
 1.  Set up required labels.
 
@@ -157,7 +156,41 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
 1. Create secrets.
 
-    Two secret objects need to be created manually within the `{namespace-name}` namespace to set the access credentials for the Minio and PostgreSQL datastores. In order to set credentials for Minio see the *Secrets* subsection within the *Configure Minio object storage* section. In order to set credentials for PostgreSQL and RabbitMQ see the subsection *Setting access credentials for PostgreSQL* within the *Installation appendix*.
+    Two secret objects need to be created manually within the `{namespace-name}` namespace to set the access credentials for the Minio and PostgreSQL datastores. To set credentials for Minio see the *Secrets* subsection within the *Configure Minio object storage* section. To set credentials for PostgreSQL and RabbitMQ see the subsection *Setting access credentials for PostgreSQL* within the *Installation appendix*.
+
+    Quickstart: create these 2 secrets
+    - Minio
+      ```yaml
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: minio
+      type: Opaque
+      data:
+        accesskey: YWRtaW4=
+        secretkey: YWRtaW4xMjM0
+      ```
+
+      where accesskey and secretkey are values of your choice encoded in base64. Example
+      ```sh
+      echo -n "admin" | base64
+      YWRtaW4=
+
+      echo -n "admin1234" | base64
+      YWRtaW4xMjM0
+      ```
+    - PostgreSQL
+      ```yaml
+      apiVersion: v1
+      data:
+        pg_repl_password: cmVwbHVzZXI=
+        pg_su_password: c3RvbG9u
+      kind: Secret
+      metadata:
+        name: user-provided-postgressql # this name can be anything you choose
+      type: Opaque
+      ```
+      where again both `pg_repl_password` and `pg_su_password` are your choice and base64 encoded.
 
 1.  Fetch the docker registry secret that is to be used to pull images within the cluster (`imagePullSecret`):
 
@@ -195,13 +228,13 @@ This Helm chart deploys a single IBM Watson Speech Services instance.
 
 ### IBM Cloud Private software prerequisites
 
-- IBM Cloud Pak for Data V2.1.0.1
-- Kubernetes V1.11.0
-- Helm V2.9.1
+- IBM Cloud Pak for Data v2.1.0.1 or v2.5
+- Kubernetes v1.11.0
+- Helm v2.9.1
 
 ### PodSecurityPolicy Requirements
 
-The predefined PodSecurityPolicy name [`ibm-restricted-psp`](https://ibm.biz/cpkspec-psp) has been verified for this chart. If your target namespace is bound to this PodSecurityPolicy, you can proceed to install the chart.
+The predefined PodSecurityPolicy name [`ibm-restricted-psp`](https://ibm.biz/cpkspec-psp) has been verified for this chart. If your target namespace is bound to this PodSecurityPolicy, you can skip the rest of this section and proceed to install the chart.
 
 Additionally, this chart also defines a custom PodSecurityPolicy that can be used to finely control the permissions and capabilities needed to deploy this chart. You can enable this custom PodSecurityPolicy by using the user interface or the supplied instructions and scripts in the `pak_extension` pre-install directory.
 
@@ -287,19 +320,20 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 1.  Run the following command to download the chart from the IBM Cloud Private repository:
 
     ```bash
-    wget https://{cluster_CA_domain}:8443/helm-repo/requiredAssets/ibm-watson-speech-prod-1.1.1.tgz --no-check-certificate
+    wget https://{cluster_CA_domain}:8443/helm-repo/requiredAssets/ibm-watson-speech-prod-1.1.2.tgz --no-check-certificate
     ```
 
 1.  Extract the TAR file from the TGZ file, and then extract files from the TAR file by using the following command:
 
     ```bash
-    tar -xvf /path/to/ibm-watson-speech-prod-1.1.1.tgz
+    tar -xvf /path/to/ibm-watson-speech-prod-1.1.2.tgz
     ```
 
 1.  Create persistent volumes for the service.
 
     - For a production deployment, consider using an IBM Cloud Pak for Data storage add-on or a storage option that is hosted outside the cluster.
     - For a development deployment, you can use the `createLocalPVs.sh` script that is provided in the archive to create the local storage volumes.    
+    - If you want to use [Portworx](https://portworx.com/) as the persistent storage solution see section *Using Portworx as storage solution*.
 
 1.  Set up required labels.
 
@@ -334,7 +368,7 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
     - Replace the following variables with the appropriate values for your cluster:
 
       - `{cluster4d-master-node}`: The hostname of the master node within the IBM Cloud Pak for Data cluster.
-      - `{name}`: A name that helps you identify this deployment. You can use the version number of the product, such as `1.1.1`.
+      - `{name}`: A name that helps you identify this deployment. You can use the version number of the product, such as `1.1.2`.
 
     - Apply the policy by running the following command:
 
@@ -344,7 +378,41 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
 1.  Create secrets
 
-    Two secret objects need to be created manually within the `{namespace-name}` namespace to set the access credentials for the Minio and PostgreSQL datastores. To set credentials for Minio, see the *Secrets* subsection within the *Configure Minio object storage* section. To set credentials for PostgreSQL and RabbitMQ, see the subsection *Setting access credentials for PostgreSQL* within the *Installation appendix*.
+    Two secret objects need to be created manually within the `{namespace-name}` namespace to set the access credentials for the Minio and PostgreSQL datastores. To set credentials for Minio see the *Secrets* subsection within the *Configure Minio object storage* section. To set credentials for PostgreSQL and RabbitMQ see the subsection *Setting access credentials for PostgreSQL* within the *Installation appendix*.
+
+    Quickstart: create these 2 secrets
+    - Minio
+      ```yaml
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: minio
+      type: Opaque
+      data:
+        accesskey: YWRtaW4=
+        secretkey: YWRtaW4xMjM0
+      ```
+
+      where accesskey and secretkey are values of your choice encoded in base64. Example
+      ```sh
+      echo -n "admin" | base64
+      YWRtaW4=
+
+      echo -n "admin1234" | base64
+      YWRtaW4xMjM0
+      ```
+    - PostgreSQL
+      ```yaml
+      apiVersion: v1
+      data:
+        pg_repl_password: cmVwbHVzZXI=
+        pg_su_password: c3RvbG9u
+      kind: Secret
+      metadata:
+        name: user-provided-postgressql # this name can be anything you choose
+      type: Opaque
+      ```
+      where again both `pg_repl_password` and `pg_su_password` are your choice and base64 encoded.    
 
 1.  Edit values in the `values.yaml` file, which is stored in the `{compressed-file-dir}/charts/ibm-watson-speech-prod` directory.
 
@@ -450,9 +518,21 @@ data:
 
 #### Data persistence
 
+##### Using Portworx as storage solution
+
+In order to configure the installation to use [Portworx](https://portworx.com/) persistent volumes, a Portworx k8 Storage Class needs to exist in the cluster. A dynamic provisioner is then enabled, which can be used to dynamically provision new volumes. See [online document](https://docs.portworx.com/portworx-install-with-kubernetes/storage-operations/kubernetes-storage-101/volumes/#storageclass) for more details.
+
+Once the Storage Class is available, its name needs to be passed to Minio, PostgreSQL and RabbitMQ, which is shown below assuming `portworx-sc` is the name of the Storage Class. Additionally, dynamic provisioning needs to be enabled. These are the values that need to be passed at installation time:
+
+- Minio: `external.minio.persistence.useDynamicProvisioning: true` and `external.minio.persistence.storageClass: portworx-sc`.
+- PostgreSQL: `postgressql.persistence.useDynamicProvisioning: true` and `postgressql.persistence.storageClassName: portworx-sc`.
+- RabbitMQ: `rabbitmqHA.persistentVolume.useDynamicProvisioning: true` and `rabbitmqHA.persistentVolume.storageClassName: portworx-sc`.
+
+##### Using other storage solutions for Minio
+
 By default Minio uses persistent local volumes to persist data. Alternatively, when performing an ICP installation, it is possible to configure Minio to use GlusterFS or NFS as long as they are available within the Kubernetes cluster where the solution is installed.
 
-##### Minio on GlusterFS
+###### Minio on GlusterFS
 
 To use Minio you need to have a running GlusterFS server and create a storage class name `oketi-gluster`.
 Information about installing GlusterFS under ICP can be found [here](https://www.ibm.com/support/knowledgecenter/en/SSBS6K_3.1.2/manage_cluster/configure_glusterfs.html).
@@ -481,7 +561,7 @@ GlusterFS directory. After modifying and saving the file as appropriate, run  `k
 
 The GlusterFS server must be installed with sufficient space size. Size calculation is described in the section *Storage size calculation guidelines*.
 
-##### Minio on NFS
+###### Minio on NFS
 
 If there is a persistent volume provisioner then it is necessary to create a storage class (see below) that Minio can leverage to automatically create the persistent volumes during installation.
 
