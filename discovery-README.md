@@ -28,7 +28,7 @@ Before installing Watson Discovery, you must install:
 
 ## Limitations
 
-- Watson Discovery must be deployed within the same namespace as IBM Cloud Pak for Data (by default the `zen` namespace). 
+- Watson Discovery must be deployed within the same namespace as IBM Cloud Pak for Data (by default the `zen` namespace).
 - A Watson Discovery deployment supports a single service instance.
 - Watson Discovery can currently run only on Intel 64-bit architecture.
 - Release names cannot exceed 13 characters
@@ -40,12 +40,23 @@ Before installing Watson Discovery, you must install:
 
 ## Resources Required
 
-In addition to the [System requirements for IBM Cloud Pak for Data](https://www.ibm.com/support/producthub/icpdata/docs/content/SSQNUZ_current/cpd/plan/rhos-reqs.html), IBM Watson Discovery has the following requirements: 
+In addition to the [System requirements for IBM Cloud Pak for Data](https://www.ibm.com/support/producthub/icpdata/docs/content/SSQNUZ_current/cpd/plan/rhos-reqs.html), IBM Watson Discovery has the following requirements.
+
+For installation (at minimum):
+
+|                                                           |Disk        | Docker registry |
+|-----------------------------------------------------------|:----------:|:---------------:|
+| Discovery                                                 | 50 GB      | 45 GB           |
+| Additional needed for Discovery for Content Intelligence  | 40 GB      | 20 GB           |
+
+
+For use:
 
 |                      | Minimum VPC available | Minimum RAM available |
 |----------------------|:---------------------:|:---------------------:|
 | Development (non-HA) | 21                    | 86 GB                 |
 | Production (HA)      | 26                    | 116 GB                |
+
 
 ## Storage
 
@@ -136,7 +147,7 @@ To make these changes, add `vm.max_map_count=262144` to `/etc/sysctl.conf` on ea
     cloudctl login -a https://{cluster_hostname}:8443 -u {user} -p {password}
     ```
 
- 
+
 3. Log into the cluster's docker registry.
 
     ```bash
@@ -164,7 +175,7 @@ Installing the Helm chart deploys a single Watson Discovery application into an 
 
 
 To deploy Watson Discovery to your cluster, run the `deploy.sh` script from the `deploy` subdirectory.
-Run `./deploy.sh  -h` for help. 
+Run `./deploy.sh  -h` for help.
 
 Include the flag:
 
@@ -184,7 +195,13 @@ The name of the your helm release will be `{release-name-prefix}`. The total len
 
 **If you've purchased and downloaded Discovery for Content Intelligence, you must install it now**:
   1. Use the values provided in `ci-override.yaml` file under `ibm-discovery-content-intelligence-ppa` folder, i.e., run the deploy script with `-O ci-override.yaml`.  If you already have an `{override-file.yaml}`, first append these values of `ci-override.yaml` into your `<override-file.yaml>` and then run the deploy script with your `-O {override-file}.yaml`.
-  2. Follow the steps provided in the `README` present under `ibm-discovery-content-intelligence-ppa` folder to add Software Identification Tag.
+  2. After Discovery for Content Intelligence is installed, add the `Software Identification Tags` to the required pod: 
+  
+      ```
+      oc cp ibm-discovery-content-intelligence-ppa/ibm.com_IBM_Watson_Discovery_for_Cloud_Pak_for_Data_Content_Intelligence-2.1.0.swidtag "$(oc get pod | awk '{print $1}' | grep gateway-0)":/swidtag/
+      ```
+  
+**Note**: The `Discovery for Content Intelligence PPA` includes the tag file ending with `.swidtag`.
 
 **Tip**: Run `-h` to view the list of available flags and help.
 
@@ -247,13 +264,27 @@ $ ./deploy/deploy.sh -d ./ibm-watson-discovery-pack1 -e $discovery_install_name
 
 **NOTE: If you are deploying to an IBM Cloud Private Foundations cluster you must add the `--openshift false` flag to your `./deploy.sh` command**
 
+### Collecting OpenShift Support Logs
+
+From `ibm_cloud_pak/pak_extensions/common/`, run  `./openshiftCollector.sh -c OPENSHIFT_CLUSTER_HOST -n ICP4D_NAMESPACE -r HELM_RELEASE_NAME -u OPENSHIFT_ADMIN_USERNAME -p OPENSHIFT_ADMIN_PASSWORD`, where
+- `OPENSHIFT_CLUSTER_HOST` is the cluster without the protocol/port
+- `ICP4D_NAMESPACE` is the namespace where ICP4D is installed (usually `zen`).
+- `OPENSHIFT_ADMIN_USERNAME` is the username for the openshift administrator
+- `OPENSHIFT_ADMIN_PASSWORD` is the password for the openshift administrator
+
+
+For more information and options, run `./ibm_cloud_pak/pak_extensions/common/openshiftCollector.sh --help`
+
+This will produce a `.tgz` file in your current directory with the format `${OPENSHIFT_CLUSTER_HOST}_${DATE_TIME}.tgz`. This file will be what the support team can use to debug issues on the cluster.
+
+You can follow the process of the log collection by running a command like `tail -f ./${OPENSHIFT_CLUSTER_HOST}_${DATE_TIME}/watson-diagnostics-data.log` in the directory that you started the command.
 
 ### Uninstalling Watson Discovery
 
 To delete these resources from the `my-release` deployment that had been deployed in `my-namespace`, run this command:
 
 ```bash
-kubectl delete --namespace=my-namespace all,configmaps,jobs,networkpolicies,poddisruptionbudgets,roles,rolebindings,secrets,serviceaccounts --selector=release=my-release
+kubectl delete --namespace=my-namespace all,configmaps,jobs,networkpolicies,poddisruptionbudgets,roles,rolebindings,clusterroles,clusterrolebindings,secrets,serviceaccounts --selector=release=my-release
 kubectl delete --namespace=my-namespace configmaps stolon-cluster-my-release-postgresql my-release.v1
 ```
 
@@ -270,7 +301,7 @@ kubectl delete --namespace=my-namespace persistentvolumeclaims --selector=releas
 
 **NOTE**: This information is provided for reference. The install will create the security requirements for you.
 
-This chart requires a PodSecurityPolicy to be bound to the target namespace prior to installation. The predefined PodSecurityPolicy name: [`ibm-restricted-psp`](https://ibm.biz/cpkspec-psp) has been verified for this chart. 
+This chart requires a PodSecurityPolicy to be bound to the target namespace prior to installation. The predefined PodSecurityPolicy name: [`ibm-restricted-psp`](https://ibm.biz/cpkspec-psp) has been verified for this chart.
 
 These PodSecurityPolicy resources can also be created manually. A cluster admin can save these templates to separate yaml files and run the command below for each file:
 
@@ -387,7 +418,7 @@ Finally, you can specify the name of the custom service account when installing 
 
 **NOTE**: This information is provided for reference. The install will create the security requirements for you.
 
-If running in a Red Hat OpenShift cluster, this chart requires a `SecurityContextConstraints` to be bound to the target namespace prior to installation. The predefined PodSecurityPolicy name: [`restricted`](https://ibm.biz/cpkspec-scc) has been verified for this chart. 
+If running in a Red Hat OpenShift cluster, this chart requires a `SecurityContextConstraints` to be bound to the target namespace prior to installation. The predefined PodSecurityPolicy name: [`restricted`](https://ibm.biz/cpkspec-scc) has been verified for this chart.
 
 The SecurityContextConstraint resource can also be created manually. A cluster admin can save this template to a yaml file and run the command below:
 
@@ -461,7 +492,7 @@ oc adm policy add-scc-to-group ibm-discovery-prod-scc system:serviceaccounts:$na
 
 Contact Support.
 
-## Backup and Restore 
+## Backup and Restore
 
 This chart currently does not support upgrades or rollbacks. See [Backing up and restoring data](https://cloud.ibm.com/docs/services/discovery-data?topic=discovery-data-backup-restore) for instructions.
 
@@ -483,4 +514,4 @@ Watson services are currently organized into the following categories for differ
   - **Speech**: Convert text and speech with the ability to customize models
   - **Vision**: Identify and tag content, then analyze and extract detailed information found in images
 
-_Copyright©  IBM Corporation 2019. All Rights Reserved._
+_Copyright©  IBM Corporation 2020. All Rights Reserved._
