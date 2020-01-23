@@ -5,9 +5,10 @@
 ## Introduction
 IBM Watson™ Discovery for Content Intelligence is an optional component for Discovery that applies AI to understand the structure and content of contracts, invoices, and purchase orders.
 
-**Note: The Content Intelligence component must be installed along with the Watson Discovery installation.**
-
 ## Prerequisites
+
+**Note: The Content Intelligence component is to be installed along with the Watson Discovery installation.**
+
 
 See [Prerequisites](https://github.com/ibm-cloud-docs/data-readmes/blob/master/discovery-README.md#prerequisites).
 
