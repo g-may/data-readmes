@@ -218,7 +218,7 @@ The ‘cluster-admin’ role is required to deploy IBM Watson Assistant.
     - For a production deployment, consider using an IBM Cloud Pak for Data storage add-on or a storage option that is hosted outside the cluster, such as vSphere Cloud Provider.
     - For a development deployment, you can use the `createLocalVolumePV.sh` script that is provided in the archive to create the local storage volumes. Note that if you choose to set `nodeAffinities`, the script will generate a `wa-persistence.yaml` file for you which you must use in the helm install command below.
 
-    For more details, see [Creating persistent volumes](https://cloud.ibm.com/docs/services/assistant-data?topic=assistant-data-install-140#install-140-create-pvs).
+    For more details, see [Creating persistent volumes](https://cloud.ibm.com/docs/assistant-data?topic=assistant-data-install-140#install-140-create-pvs).
 
     **Note**: The documentation link takes you out of IBM Cloud Pak for Data to the public IBM Cloud.
 
@@ -386,7 +386,7 @@ The ‘cluster-admin’ role is required to deploy IBM Watson Assistant.
     - For a production deployment, consider using an IBM Cloud Pak for Data storage add-on or a storage option that is hosted outside the cluster, such as vSphere Cloud Provider.
     - For a development deployment, you can use the `createLocalVolumePV.sh` script that is provided in the archive to create the local storage volumes.
 
-    For more details, see [Creating persistent volumes](https://cloud.ibm.com/docs/services/assistant-data?topic=assistant-data-install-140#install-140-create-pvs).
+    For more details, see [Creating persistent volumes](https://cloud.ibm.com/docs/assistant-data?topic=assistant-data-install-140#install-140-create-pvs).
 
     **Note**: The documentation link takes you out of IBM Cloud Pak for Data to the public IBM Cloud.
 
@@ -641,7 +641,7 @@ The following tables lists the configurable parameters of the IBM Watson Assista
 
 ## Documentation
 
-Find out more about IBM Watson Assistant by reading the [product documentation](https://cloud.ibm.com/docs/services/assistant-data?topic=assistant-data-index).
+Find out more about IBM Watson Assistant by reading the [product documentation](https://cloud.ibm.com/docs/assistant-data?topic=assistant-data-index).
 
 **Note**: The documentation link takes you out of IBM Cloud Pak for Data to the public IBM Cloud.
 

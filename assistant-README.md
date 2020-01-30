@@ -143,7 +143,7 @@ Installing the Helm chart deploys a single IBM Watson Assistant instance.
 
 The ‘cluster-admin’ role is required to deploy IBM Watson Assistant.
 
-Before you begin, create persistent volumes for the service. See [Creating persistent volumes](https://cloud.ibm.com/docs/services/assistant-data?topic=assistant-data-install) for details. (**Note**: This link takes you out of IBM Cloud Private to the public IBM Cloud.)
+Before you begin, create persistent volumes for the service. See [Creating persistent volumes](https://cloud.ibm.com/docs/assistant-data?topic=assistant-data-install) for details. (**Note**: This link takes you out of IBM Cloud Private to the public IBM Cloud.)
 
 1.  From the Kubernetes command line tool, create the namespace in which to deploy the service. Use the following command to create the namespace:
 
@@ -375,7 +375,7 @@ The following tables lists the configurable parameters of the IBM Watson Assista
 
 ## Documentation
 
-Find out more about IBM Watson Assistant by reading the [product documentation](https://cloud.ibm.com/docs/services/assistant-data?topic=assistant-data-index).
+Find out more about IBM Watson Assistant by reading the [product documentation](https://cloud.ibm.com/docs/assistant-data?topic=assistant-data-index).
 
 **Note**: The documentation link takes you out of IBM Cloud Private to the public IBM Cloud.
 
