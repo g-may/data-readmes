@@ -130,7 +130,7 @@ To make these changes, add `vm.max_map_count=262144` to `/etc/sysctl.conf` on ea
 
 ### Setting up an IBM Cloud Private environment
 
-**NOTE:** Skip this section if you are deploying to OpenShift. See [Setting up an OpenShift Environment](#setting-up-an- openshift-environment).
+**NOTE:** Skip this section if you are deploying to OpenShift. See [Setting up an OpenShift Environment](#setting-up-an-openshift-environment).
 
 1. Initialize Helm client by running the following command. For further details of Helm CLI setup, see [Installing the Helm CLI](https://www.ibm.com/support/knowledgecenter/SSBS6K_3.1.2/app_center/create_helm_cli.html).
 
