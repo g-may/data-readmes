@@ -1,4 +1,4 @@
-# IBM Watson™ Speech Services 1.1.2
+# IBM Watson™ Speech Services 1.1.3
 
 ## Introduction
 
@@ -6,43 +6,44 @@ This document contains installation instructions for both IBM Watson™ Speech t
 
 IBM Watson™ Speech to Text (*STT*) provides speech recognition capabilities for your solutions. The service leverages machine learning to combine knowledge of grammar, language structure, and the composition of audio and voice signals to accurately transcribe the human voice. It continuously updates and refines its transcription as it receives more speech.
 
-IBM Watson™ Text to Speech (*TTS*) service converts written text to natural-sounding speech to provide speech-synthesis capabilities for applications. It gives you the freedom to customize your own preferred speech in different languages. This cURL-based tutorial can help you get started quickly with the service.
+IBM Watson™ Text to Speech (*TTS*) service converts written text to natural-sounding speech to provide speech-synthesis capabilities for applications. It gives you the freedom to customize your own preferred speech in different languages.
 
 ## Chart Details
 
-This chart can be used to install a single instance of both the *STT* and *TTS* solutions. The solutions can be installed separately, however if both are installed together they share datastores for a more efficient utilization of resources and simplified support.
+This chart can be used to install a single instance of both the *STT* and *TTS* solutions. The solutions can be installed separately. However, if both are installed together, they share datastores for a more efficient utilization of resources and simplified support.
 
 ## Prerequisites
 
 In addition to the system requirements for the cluster (see [System requirements](https://www.ibm.com/support/knowledgecenter/SSQNUZ_2.1.0/com.ibm.icpdata.doc/zen/install/reqs-ent.html)), the Watson Speech Services have their own requirements.
 
-- The only architecture supported is `x86-64`
-- For Speech-to-Text 11 CPU cores and 40 GB of memory are required for the minimum configuration (development)
-- For Text-to-Speech 5 CPU cores and 8 GB of memory are required for the minimum configuration (development)
+- The only architecture supported is `x86-64`.
+- For Speech-to-Text, 11 CPU cores and 40 GB of memory are required for the minimum configuration (development).
+- For Text-to-Speech, 5 CPU cores and 8 GB of memory are required for the minimum configuration (development).
 
 ## Installing the chart on IBM Cloud Pak for Data with OpenShift
 
-This Helm chart deploys a single IBM Watson Speech Services instance.
+This Helm chart deploys a single instance of the IBM Watson Speech Services.
 
-### OpenShift software prerequisites
+### Software prerequisites
 
-- IBM Cloud Pak for Data v2.1.0.1 or v2.5
+- OpenShift v3.11
+- IBM Cloud Pak for Data v2.1.0.1 or v2.5 (for OpenShift v3.11) or v3.0.0.0 (for OpenShift v4.2)
 - Kubernetes v1.11.0
 - Helm v2.9.0
 
-Before installing the Speech Services solution, you must install and configure [`helm`](https://helm.sh/docs/using_helm/#installing-the-helm-client) and [`kubectl`](https://docs-icpdata.mybluemix.net/docs/content/SSQNUZ_current/com.ibm.icpdata.doc/zen/install/kubectl-access.html).
+Before installing the Speech Services solution on OpenShift v3.11, you must install and configure [`helm`](https://helm.sh/docs/using_helm/#installing-the-helm-client) and [`kubectl`](https://docs-icpdata.mybluemix.net/docs/content/SSQNUZ_current/com.ibm.icpdata.doc/zen/install/kubectl-access.html).
 
 ### Red Hat OpenShift SecurityContextConstraints Requirements
 
-This chart requires a SecurityContextConstraints to be bound to the target namespace prior to installation. To meet this requirement there might be cluster-scoped as well as namespace-scoped pre and post actions that need to occur.
+This chart requires a SecurityContextConstraints to be bound to the target namespace prior to installation. To meet this requirement, there might be cluster-scoped as well as namespace-scoped pre and post actions that need to occur.
 
-The predefined SecurityContextConstraints name [`restricted`](https://ibm.biz/cpkspec-scc) has been verified for this chart. If your target namespace is bound to this SecurityContextConstraints resource you can skip the rest of this section and proceed to install the chart. Otherwise, run the following command to bind the `restricted` SecurityContextConstraints to your namespace:
+The predefined SecurityContextConstraints name [`restricted`](https://ibm.biz/cpkspec-scc) has been verified for this chart. If your target namespace is bound to this SecurityContextConstraints resource, you can skip the rest of this section and proceed to install the chart. Otherwise, run the following command to bind the `restricted` SecurityContextConstraints to your namespace:
 
 ```bash
 oc adm policy add-scc-to-group restricted system:serviceaccounts:{namespace-name}
 ```
 
-This chart also defines a custom SecurityContextConstraints that can be used to finely control the permissions and capabilities needed to deploy this chart. You can enable this custom SecurityContextConstraints resource using the supplied instructions and scripts in the `pak_extension` pre-install directory.
+This chart also defines a custom SecurityContextConstraints that can be used to finely control the permissions and capabilities needed to deploy this chart. You can enable this custom SecurityContextConstraints resource by using the supplied instructions and scripts in the `pak_extension` pre-install directory.
 
 - From the user interface, you can copy and paste the following snippets to enable the custom SecurityContextConstraints:
   - Custom SecurityContextConstraints definition:
@@ -75,14 +76,14 @@ This chart also defines a custom SecurityContextConstraints that can be used to 
     - persistentVolumeClaim
     - projected
     - secret
-    ```    
+    ```
 
 - From the command line, you can run the setup scripts included under `pak_extensions`.
 
   For cluster admin, the pre-install instructions are located at:
   - `pre-install/clusterAdministration/Notes.md`
 
-  For team admin the namespace scoped instructions are located at:
+  For team admin, the namespace scoped instructions are located at:
   - `pre-install/namespaceAdministration/Notes.md`
 
 ### Installing the Chart
@@ -91,26 +92,36 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
 1.  Log into OpenShift and docker:
 
+    For OpenShift v3.11, enter:
+
     ```bash
     oc login
     docker login -u $(oc whoami) -p $(oc whoami -t) {docker-registry}
     ```
 
-    - `{docker-registry}` is the address of the OpenShift docker registry; for example,  `docker-registry-default.apps.speech-openshift.ibm.com`. You can find the URL of the docker registry in the OpenShift console. You may need to add `{docker-registry}` to your list of insecure registries in your local Docker preferences.
+    - `{docker-registry}` is the address of the OpenShift docker registry; for example,  `docker-registry-default.apps.speech-openshift.ibm.com`. You can find the URL of the docker registry in the OpenShift console. You might need to add `{docker-registry}` to your list of insecure registries in your local Docker preferences.
 
-1.  From the OpenShift command line tool, create the namespace in which to deploy the service; for example, `speech-services`. Use the following command to create the namespace:
+    For OpenShift v4.2, enter:
 
     ```bash
-    oc new-project {namespace-name}
+    oc whoami -t | docker login -u kubeadmin --password-stdin $HOST
     ```
 
-1.  Make sure you are pointing at the correct OpenShift project:
+    where `$HOST` comes from exposing the registry route:
+
+    ```bash
+    oc project openshift-image-registry
+    oc patch configs.imageregistry.operator.openshift.io/cluster --patch '{"spec":{"defaultRoute":true}}' --type=merge
+    HOST=$(oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}')
+    ```
+
+1.  From the OpenShift command line tool, switch to the OpenShift project where Cloud Pak for Data (CPD) is installed (typically the `zen` namespace):
 
     ```bash
     oc project {namespace-name}
     ```
 
-    - `{namespace-name}` is the Kubernetes and Docker namespace that you created in Step 1.
+    - `{namespace-name}` is the Kubernetes and Docker namespace where CPD is installed.
 
 1.  Extract the PPA archive contents:
 
@@ -118,10 +129,10 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
     cd {compressed-file-dir}
     tar -xvf {compressed-file-name}
     cd charts
-    tar -xvf ibm-watson-speech-prod-1.1.2.tgz
+    tar -xvf ibm-watson-speech-prod-1.1.3.tgz
     ```
 
-    - `{compressed-file-dir}` is the directory where you downloaded {compressed-file-name} to.
+    - `{compressed-file-dir}` is the directory to which you downloaded `{compressed-file-name}`.
     - `{compressed-file-name}` is the name of the PPA file that you downloaded from Passport Advantage.
 
 1.  Load the docker images into the OpenShift docker registry:
@@ -135,13 +146,14 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
     If successful, the docker images now exist in the OpenShift docker registry.
 
-    If you cannot access the Kubernetes command line tool, see [Enabling access to kubectl CLI](https://www.ibm.com/support/knowledgecenter/SSQNUZ_2.1.0/com.ibm.icpdata.doc/zen/install/kubectl-access.html) for instructions.
+    If you cannot access the Kubernetes command-line tool, see [Enabling access to kubectl CLI](https://www.ibm.com/support/knowledgecenter/SSQNUZ_2.1.0/com.ibm.icpdata.doc/zen/install/kubectl-access.html) for instructions.
 
 1.  Create persistent volumes for the service.
 
-    - For a production deployment, consider using an IBM Cloud Pak for Data storage add-on or a storage option that is hosted outside the cluster.
+    - For a production deployment, consider using an IBM Cloud Pak for Data storage add-on or a storage option that is hosted outside of the cluster.
     - For a development deployment, you can run `createLocalPVs.sh` from inside the cluster to create the local storage volumes. The script is located at `ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration`.
-    - If you want to use [Portworx](https://portworx.com/) as the persistent storage solution see section *Using Portworx as storage solution*.
+    - If you want to use [Portworx](https://portworx.com/) as the persistent storage solution, see section *Using Portworx as storage solution*.
+    - For OpenShift v4.2, the persistent storage solution must be Rook-Ceph. See section *Using Rook-Ceph as the distributed storage solution*.
 
 1.  Set up required labels.
 
@@ -156,9 +168,9 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
 1. Create secrets.
 
-    Two secret objects need to be created manually within the `{namespace-name}` namespace to set the access credentials for the Minio and PostgreSQL datastores. To set credentials for Minio see the *Secrets* subsection within the *Configure Minio object storage* section. To set credentials for PostgreSQL and RabbitMQ see the subsection *Setting access credentials for PostgreSQL* within the *Installation appendix*.
+    Two secret objects need to be created manually within the `{namespace-name}` namespace to set the access credentials for the Minio and PostgreSQL datastores. To set credentials for Minio, see section *Secrets* subsection within the *Configure Minio object storage*. To set credentials for PostgreSQL and RabbitMQ, see the subsection *Setting access credentials for PostgreSQL* within the *Installation appendix*.
 
-    Quickstart: create these 2 secrets
+    Quickstart: create these two secrets:
     - Minio
       ```yaml
       apiVersion: v1
@@ -171,7 +183,7 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
         secretkey: YWRtaW4xMjM0
       ```
 
-      where accesskey and secretkey are values of your choice encoded in base64. Example
+      where `accesskey` and `secretkey` are values of your choice encoded in base64. For example:
       ```sh
       echo -n "admin" | base64
       YWRtaW4=
@@ -190,19 +202,19 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
         name: user-provided-postgressql # this name can be anything you choose
       type: Opaque
       ```
-      where again both `pg_repl_password` and `pg_su_password` are your choice and base64 encoded.
+      where both `pg_repl_password` and `pg_su_password` are again your choice and base64-encoded.
 
 1.  Fetch the docker registry secret that is to be used to pull images within the cluster (`imagePullSecret`):
 
     ```bash
-    oc get secrets | grep default-dockercfg
+    oc get secret | grep default-dockercfg | awk '{print $1}'
     ```
 
 1.  Edit values in the `values.yaml` file, which is stored in the `{compressed-file-dir}/charts/ibm-watson-speech-prod` directory.
 
     1.  At a minimum, you must provide your own values for the following configurable settings:
 
-        - Set `global.icpDockerRepo` to the docker registry URL, including the namespace. For example, `docker-registry.default.svc:5000/{namespace-name}`.
+        - Set `global.icpDockerRepo` to the docker registry URL, including the namespace. For example, `docker-registry.default.svc:5000/{namespace-name}` (OpenShift v3.11) or `image-registry.openshift-image-registry.svc:5000/{namespace-name}` (OpenShift v4.2).
 
         - Set `global.imagePullSecretName` to the name of the docker registry secret obtained in the previous step.
 
@@ -210,9 +222,11 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
         - Set `global.image.pullSecret` to the same value you set `global.imagePullSecretName`.
 
-    See the section *Select the components to install* for information on how to select the components to install. Additionally, read the *Installation appendix* and *Configuration* section to learn more about the installation configuration.
+    See the section *Select the components to install* for information about how to select the components to install. Additionally, read the *Installation appendix* and *Configuration* section to learn more about the installation configuration.
 
-1.  After you define any custom configuration settings, you can install the chart from the Helm command line interface. Enter the following command from the directory where the package was loaded in your local system:
+1.  After you define any custom configuration settings, you can install the chart from the Helm command-line interface.
+
+    - OpenShift v3.11: Enter the following command from the directory where the package was loaded in your local system:
 
     ```bash
     helm install --namespace {namespace-name} --name {release-name} {compressed-file-dir}/charts/ibm-watson-speech-prod/ --tiller-namespace {tiller-namespace}
@@ -221,8 +235,21 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
     - `{tiller-namespace}` is the namespace where Tiller is installed within the cluster (typically the `zen` namespace).
     - `{release-name}` is the name of the Helm release.
 
+    - OpenShift v4.2: The chart needs to be installed from inside the cluster. First copy the chart to the operator pod:
 
-## Installing the Chart on IBM Cloud Pak for Data (without Openshift)
+    ```bash
+    OPERATOR=$(oc get pod | grep cpd-install-operator | awk '{print $1}')
+    oc cp ibm-watson-speech-prod/ ${OPERATOR}:/mnt/installer
+    ```
+    Finally, exec into the operator pod and install the helm chart from there:
+
+    ```bash
+    oc exec -ti ${OPERATOR} bash
+    cd /mnt/installer
+    helm install --name ibm-wc ibm-watson-speech-prod/ --tls
+    ```
+
+## Installing the Chart on IBM Cloud Pak for Data (no OpenShift)
 
 This Helm chart deploys a single IBM Watson Speech Services instance.
 
@@ -297,15 +324,15 @@ Additionally, this chart also defines a custom PodSecurityPolicy that can be use
 
 The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
-1.  From the Kubernetes command line tool, create the namespace in which to deploy the service; for example, `speech-services`. Use the following command to create the namespace:
+1.  From the Kubernetes command-line tool, create the namespace in which to deploy the service; for example, `speech-services`. Use the following command to create the namespace:
 
     ```bash
     kubectl create namespace {namespace-name}
     ```
 
-    If you cannot access the Kubernetes command line tool, see [Enabling access to kubectl CLI](https://www.ibm.com/support/knowledgecenter/SSQNUZ_2.1.0/com.ibm.icpdata.doc/zen/install/kubectl-access.html) for instructions.
+    If you cannot access the Kubernetes command-line tool, see [Enabling access to kubectl CLI](https://www.ibm.com/support/knowledgecenter/SSQNUZ_2.1.0/com.ibm.icpdata.doc/zen/install/kubectl-access.html) for instructions.
 
-1.  To load the file from Passport Advantage into IBM Cloud Private, enter the following command in the IBM Cloud Private command line interface.
+1.  To load the file from Passport Advantage into IBM Cloud Private, enter the following command in the IBM Cloud Private command-line interface.
 
     ```bash
     cloudctl catalog load-archive --registry https://{cluster4d-master-node}:8500/{namespace-name} --archive {compressed-file-name} --repo local-charts
@@ -320,24 +347,24 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 1.  Run the following command to download the chart from the IBM Cloud Private repository:
 
     ```bash
-    wget https://{cluster_CA_domain}:8443/helm-repo/requiredAssets/ibm-watson-speech-prod-1.1.2.tgz --no-check-certificate
+    wget https://{cluster_CA_domain}:8443/helm-repo/requiredAssets/ibm-watson-speech-prod-1.1.3.tgz --no-check-certificate
     ```
 
-1.  Extract the TAR file from the TGZ file, and then extract files from the TAR file by using the following command:
+1.  Extract the tar file from the tgz file, and then extract files from the tar file by using the following command:
 
     ```bash
-    tar -xvf /path/to/ibm-watson-speech-prod-1.1.2.tgz
+    tar -xvf /path/to/ibm-watson-speech-prod-1.1.3.tgz
     ```
 
 1.  Create persistent volumes for the service.
 
-    - For a production deployment, consider using an IBM Cloud Pak for Data storage add-on or a storage option that is hosted outside the cluster.
-    - For a development deployment, you can use the `createLocalPVs.sh` script that is provided in the archive to create the local storage volumes.    
-    - If you want to use [Portworx](https://portworx.com/) as the persistent storage solution see section *Using Portworx as storage solution*.
+    - For a production deployment, consider using an IBM Cloud Pak for Data storage add-on or a storage option that is hosted outside of the cluster.
+    - For a development deployment, you can use the `createLocalPVs.sh` script that is provided in the archive to create the local storage volumes.
+    - If you want to use [Portworx](https://portworx.com/) as the persistent storage solution, see section *Using Portworx as storage solution*.
 
 1.  Set up required labels.
 
-    A label must be added to the namespace where IBM Cloud Pak for Data is installed (normally `zen`). The label is needed to permit communication between your application's namespace and the IBM Cloud Pak for Data namespace by using a network policy. To meet this requirement there are cluster-scoped pre and post actions that need to occur. Run the script that is provided with the archive to add the label.
+    A label must be added to the namespace where IBM Cloud Pak for Data is installed (normally `zen`). The label is needed to permit communication between your lication's namespace and the IBM Cloud Pak for Data namespace by using a network policy. To meet this requirement, there are cluster-scoped pre and post actions that need to occur. Run the script that is provided with the archive to add the label.
 
     ```bash
     cd {compressed-file-dir}/charts/ibm-watson-speech-prod/ibm_cloud_pak/pak_extensions/pre-install/clusterAdministration
@@ -368,7 +395,7 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
     - Replace the following variables with the appropriate values for your cluster:
 
       - `{cluster4d-master-node}`: The hostname of the master node within the IBM Cloud Pak for Data cluster.
-      - `{name}`: A name that helps you identify this deployment. You can use the version number of the product, such as `1.1.2`.
+      - `{name}`: A name that helps you identify this deployment. You can use the version number of the product, such as `1.1.3`.
 
     - Apply the policy by running the following command:
 
@@ -378,9 +405,9 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
 1.  Create secrets
 
-    Two secret objects need to be created manually within the `{namespace-name}` namespace to set the access credentials for the Minio and PostgreSQL datastores. To set credentials for Minio see the *Secrets* subsection within the *Configure Minio object storage* section. To set credentials for PostgreSQL and RabbitMQ see the subsection *Setting access credentials for PostgreSQL* within the *Installation appendix*.
+    Two secret objects need to be created manually within the `{namespace-name}` namespace to set the access credentials for the Minio and PostgreSQL datastores. To set credentials for Minio, see the *Secrets* subsection within the *Configure Minio object storage* section. To set credentials for PostgreSQL and RabbitMQ, see the subsection *Setting access credentials for PostgreSQL* within the *Installation appendix*.
 
-    Quickstart: create these 2 secrets
+    Quickstart: create these two secrets
     - Minio
       ```yaml
       apiVersion: v1
@@ -393,7 +420,7 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
         secretkey: YWRtaW4xMjM0
       ```
 
-      where accesskey and secretkey are values of your choice encoded in base64. Example
+      where `accesskey` and `secretkey` are values of your choice encoded in base64. For example:
       ```sh
       echo -n "admin" | base64
       YWRtaW4=
@@ -412,23 +439,20 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
         name: user-provided-postgressql # this name can be anything you choose
       type: Opaque
       ```
-      where again both `pg_repl_password` and `pg_su_password` are your choice and base64 encoded.    
+      where both `pg_repl_password` and `pg_su_password` are again your choice and base64-encoded.
 
 1.  Edit values in the `values.yaml` file, which is stored in the `{compressed-file-dir}/charts/ibm-watson-speech-prod` directory.
 
-    1.  At minimum, you must provide your own values for the following configurable settings:
+    1.  At a minimum, you must provide your own values for the following configurable settings:
 
         - Set `global.icpDockerRepo` to the Docker registry URL, including the namespace; for example, `docker-registry.default.svc:5000/{namespace-name}`.
-
         - Set `global.imagePullSecretName` to the name of the Docker registry secret, which is `sa-{namespace-name}`. You can verify that the secret actually exists in your namespace by running `kubectl get secrets -n {namespace-name}`.
-
         - Set `global.image.repository` to the same value you set `global.icpDockerRepo`.
-
         - Set `global.image.pullSecret` to the same value you set `global.imagePullSecretName`.
 
-  See the section *Select the components to install* for information on how to select the components to install. Additionally, read the *Installation appendix* and *Configuration* section to learn more about the installation configuration.
+  See the section *Select the components to install* for information about how to select the components to install. Additionally, read the *Installation appendix* and *Configuration* section to learn more about the installation configuration.
 
-1.  After you define any custom configuration settings, you can install the chart from the Helm command line interface. Enter the following command from the directory where the package was loaded in your local system:
+1.  After you define any custom configuration settings, you can install the chart from the Helm command-line interface. Enter the following command from the directory where the package was loaded in your local system:
 
     ```bash
     helm install --namespace {namespace-name} --name {release-name} ./ibm-watson-speech-prod
@@ -438,7 +462,7 @@ The `cluster-admin` role is required to deploy IBM Watson Speech Services.
 
 ## Verifying the Chart
 
-See the instruction (from NOTES.txt within chart) after the Helm installation completes for chart verification. The instruction can also be viewed by running the command: `helm status my-release --tls`.
+See the instruction (from `NOTES.txt` within chart) after the Helm installation completes for chart verification. The instruction can also be viewed by running the command `helm status my-release --tls`.
 
 ## Uninstalling the chart
 
@@ -477,7 +501,24 @@ tags:
 - `sttRuntime` enables the installation of the core STT functionality, which lets you convert speech into text by using the `/recognize` endpoint. Note that this component is installed if any of the `sttRuntime`, `sttCustomization`, or `sttAsync` tags are set to `true`.
 - `ttsRuntime` enables the installation of the core TTS functionality, which lets you convert text into speech by using the `/synthesize` endpoint.  Note that this component is installed if either the `ttsRuntime` or `ttsCustomization` tags are set to `true`.
 
-By default all the components are enabled, but each of them can be disabled separately. If you want to install *STT* only, you need to set `ttsRuntime` and `ttsCustomization` to `false`. Similarly, if you want to install *TTS* only, you need to set `sttRuntime`, `sttCustomization`, and `sttAsync` to `false`. For example, if you want to install *STT* and *TTS* but do not want customization capabilities, then you need to set `sttCustomization` and `ttsCustomization` to `false`.
+By default, all of the components are enabled, but each of them can be disabled separately. If you want to install *STT* only, you need to set `ttsRuntime` and `ttsCustomization` to `false`. Similarly, if you want to install *TTS* only, you need to set `sttRuntime`, `sttCustomization`, and `sttAsync` to `false`. For example, if you want to install *STT* and *TTS* but do not want customization capabilities, you need to set `sttCustomization` and `ttsCustomization` to `false`.
+
+### Affinity specification
+
+This is the node/pod affinity specification for the speech-to-text and text-to-speech pods. If specified, it overrides the default affinity (found in the template file `\_sch-chart-config.tpl`, which overrides `sch.affinity.nodeAffinity` within the `sch` subchart) to run on any amd64 node. You can pass your own affinity specification using the `affinity` value in the top-level `values.yaml` file, for example:
+
+```yaml
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/e2e-az-name
+          operator: In
+          values:
+          - e2e-az1
+          - e2e-az2
+```
 
 ### Configure Minio object storage
 
@@ -518,11 +559,21 @@ data:
 
 #### Data persistence
 
-##### Using Portworx as storage solution
+##### Using Rook-Ceph as the distributed storage solution
 
-In order to configure the installation to use [Portworx](https://portworx.com/) persistent volumes, a Portworx k8 Storage Class needs to exist in the cluster. A dynamic provisioner is then enabled, which can be used to dynamically provision new volumes. See [online document](https://docs.portworx.com/portworx-install-with-kubernetes/storage-operations/kubernetes-storage-101/volumes/#storageclass) for more details.
+This storage solution must be used with OpenShift v4.2. If Rook-Ceph is properly installed in your cluster, the `rook-ceph-block-internal` storage class is listed when running `oc get storageclass`.
 
-Once the Storage Class is available, its name needs to be passed to Minio, PostgreSQL and RabbitMQ, which is shown below assuming `portworx-sc` is the name of the Storage Class. Additionally, dynamic provisioning needs to be enabled. These are the values that need to be passed at installation time:
+After making sure the Storage Class is available, its name needs to be passed to Minio, PostgreSQL, and RabbitMQ by setting the following values in the top-level `values.yaml` file as shown:
+
+- Minio: `external.minio.persistence.storageClass: rook-ceph-block-internal`.
+- PostgreSQL: `postgressql.persistence.storageClassName: rook-ceph-block-internal`.
+- RabbitMQ: `rabbitmqHA.persistentVolume.storageClassName: rook-ceph-block-internal`.
+
+##### Using Portworx as the distributed storage solution
+
+To configure the installation to use [Portworx](https://portworx.com/) persistent volumes, a Portworx k8 Storage Class needs to exist in the cluster. A dynamic provisioner is then enabled, which can be used to dynamically provision new volumes. See the [online document](https://docs.portworx.com/portworx-install-with-kubernetes/storage-operations/kubernetes-storage-101/volumes/#storageclass) for more information.
+
+Once the Storage Class is available, its name needs to be passed to Minio, PostgreSQL, and RabbitMQ. The examples that follow assume `portworx-sc` is the name of the Storage Class. Additionally, dynamic provisioning needs to be enabled. These are the values that need to be passed at installation time:
 
 - Minio: `external.minio.persistence.useDynamicProvisioning: true` and `external.minio.persistence.storageClass: portworx-sc`.
 - PostgreSQL: `postgressql.persistence.useDynamicProvisioning: true` and `postgressql.persistence.storageClassName: portworx-sc`.
@@ -530,13 +581,11 @@ Once the Storage Class is available, its name needs to be passed to Minio, Postg
 
 ##### Using other storage solutions for Minio
 
-By default Minio uses persistent local volumes to persist data. Alternatively, when performing an ICP installation, it is possible to configure Minio to use GlusterFS or NFS as long as they are available within the Kubernetes cluster where the solution is installed.
+By default, Minio uses persistent local volumes to persist data. Alternatively, when performing an ICP installation, it is possible to configure Minio to use GlusterFS or NFS as long as they are available within the Kubernetes cluster where the solution is installed.
 
 ###### Minio on GlusterFS
 
-To use Minio you need to have a running GlusterFS server and create a storage class name `oketi-gluster`.
-Information about installing GlusterFS under ICP can be found [here](https://www.ibm.com/support/knowledgecenter/en/SSBS6K_3.1.2/manage_cluster/configure_glusterfs.html).
-It is possible that you created the `oketi-gluster` storage class during ICP installation. If not, create it as follows:
+To use Minio, you need to have a running GlusterFS server and create a storage class named `oketi-gluster`. Information about installing GlusterFS under ICP can be found in this [online document](https://www.ibm.com/support/knowledgecenter/en/SSBS6K_3.1.2/manage_cluster/configure_glusterfs.html). It is possible that you created the `oketi-gluster` storage class during ICP installation. If not, create it as follows:
 
 ```bash
 cat > oketi-gluster.yaml << EOF
@@ -556,14 +605,13 @@ cat > oketi-gluster.yaml << EOF
 EOF
 ```
 
-where `$GLUSTER_SERVER` is the address of the GlusterFS server and `$GLUSTER_DIR` is the root of the
-GlusterFS directory. After modifying and saving the file as appropriate, run  `kubectl apply -f oketi-gluster.yaml`.
+where `$GLUSTER_SERVER` is the address of the GlusterFS server and `$GLUSTER_DIR` is the root of the GlusterFS directory. After modifying and saving the file as appropriate, run  `kubectl apply -f oketi-gluster.yaml`.
 
-The GlusterFS server must be installed with sufficient space size. Size calculation is described in the section *Storage size calculation guidelines*.
+The GlusterFS server must be installed with sufficient space. Size calculation is described in the section *Storage size calculation guidelines*.
 
 ###### Minio on NFS
 
-If there is a persistent volume provisioner then it is necessary to create a storage class (see below) that Minio can leverage to automatically create the persistent volumes during installation.
+If there is a persistent volume provisioner, it is necessary to create a storage class that Minio can leverage to automatically create the persistent volumes during installation.
 
 ```yaml
 apiVersion: storage.k8s.io/v1
@@ -581,7 +629,7 @@ reclaimPolicy: Retain
 volumeBindingMode: Immediate
 ```
 
-If there is no provisioner, disable automatic provisioning by setting the value `external.minio.peristence.useDynamicProvisioning` to `false`. Create the the persistent volumes explicitly before performing the installation as described in the following sections. Note that it is necessary to create a persistent volume for each Mßinio replica. The directories where the persistent volumes are mounted must have non-root access so the Minio pods can write to them. Permissions can be changed by running the `chmod` command from the cluster nodes.
+If there is no provisioner, disable automatic provisioning by setting the value `external.minio.peristence.useDynamicProvisioning` to `false`. Create the persistent volumes explicitly before performing the installation as described in the following sections. Note that it is necessary to create a persistent volume for each Minio replica. The directories where the persistent volumes are mounted must have non-root access so that the Minio pods can write to them. Permissions can be changed by running the `chmod` command from the cluster nodes.
 
 ```yaml
 apiVersion: v1
@@ -593,7 +641,7 @@ spec:
     storage: $CAPACITY      # for example: 100Gi
   accessModes:
     - ReadWriteOnce
-  persistentVolumeReclaimPolicy:  
+  persistentVolumeReclaimPolicy:
   nfs:
     server: $NFS_SERVER     # for example: 9.46.65.38
     path: $NFS_DIR          # for example: /NFSDataStore/speech_minio/dir0
@@ -601,21 +649,21 @@ spec:
 
 #### Mode of operation
 
-By default, Minio operats in `distributed` mode, which means that Minio is scheduled to run multiple instance on every worker node to assure storage high availability.
+By default, Minio operates in `distributed` mode, which means that Minio is scheduled to run multiple instances on every worker node to ensure high availability of storage.
 
-To use HA optimally, you must specify an appropriate number of replicas. Set the number of replicas for distributed mode by running `external.minio.replicas={number-of-cluster-nodes}`, where `{number-of-cluster-nodes}` is `4 <= x <= 32`. The default value is `4` replicas.
+To use high availability optimally, you must specify an appropriate number of replicas. Set the number of replicas for distributed mode by running `external.minio.replicas={number-of-cluster-nodes}`, where `{number-of-cluster-nodes}` is `4 <= x <= 32`. The default value is `4` replicas.
 
-Minio also operates in `standalone` mode, which means that only one instance of Minio runs on an arbitrary worker node and its failure means that the service becomes available until a new instance is running and healthy. This option is sufficient for testing purposes but not for production.
+Minio can also operate in `standalone` mode, which means that only one instance of Minio runs on an arbitrary worker node. Its failure means that the service becomes unavailable until a new instance is running and healthy. This option is sufficient for testing purposes but not for production.
 
-If you want to run Minio in `standalone` mode, you can do it by setting the value `external.minio.mode=standalone`. In this case you don't have to set the `external.minio.replicas` value.
+If you want to run Minio in `standalone` mode, you can do it by setting the value `external.minio.mode=standalone`. In this case, you do not have to set the `external.minio.replicas` value.
 
 #### Storage size calculation guidelines
 
 Object storage is used for storing binary data from the following sources:
 
-  - Base models (for example `en_US-NarrowbandModel`)
+  - Base models (for example, `en_US-NarrowbandModel`)
 
-    On average, base models are each `1.5 GB`. Because models are updated regularly, you need to multiply that amount by three to make room for at least three different versions of each model.
+    On average, base models are each `1.5 GB`. Because models are updated regularly. You need to multiply that amount by three to make room for at least three different versions of each model.
 
   - Customization data (audio files and training snapshots)
 
@@ -625,18 +673,18 @@ Object storage is used for storing binary data from the following sources:
 
     The storage required for asynchronous jobs depends on the use case. If you plan to submit large batches of audio files, expect the service to queue some jobs temporarily. This means that some audio files are held temporarily in binary storage. The amount of storage required for this purpose does not exceed the size of the largest batch of jobs that you plan to submit in parallel.
 
-A few examples of how to calculate storage size [GB] follow:
+A few examples of how to calculate storage size (in gigabytes) follow:
 
 -   6 models, 3 versions, 50 hours audio = `6 * 1.5 * 3 + 50 * 0.5 = 52`
 -   2 models, 3 versions, 20 hours audio = `2 * 1.5 * 3 + 20 * 0.5 = 19`
 
-The default storage size, `100 GB`, is a minimal starting point and is typically enough for operations with two to six models and about 50 hours of audio for the purpose of training custom models. That said, it is always a good idea to be generous in anticipation of future storage needs.
+The default storage size, `100 GB`, is a minimum starting point and is typically enough for operations with two to six models and about 50 hours of audio for the purpose of training custom models. But it is always a good idea to be generous in anticipation of future storage needs.
 
 ### Configuration of the PostgreSQL and RabbitMQ installation
 
 #### Setting access credentials for PostgreSQL
 
-The Postgres chart reads the credentials to access the Postgres database from the following secret file, which needs to be created before installing the chart. You need to set the attribute `data.pg_su_password` to the Postgres password that you want (base64 encoded). You also need to set the attribute `pg_repl_password`, which is the replication password and is also base64 encoded, to the value you want.
+The Postgres chart reads the credentials to access the Postgres database from the following secret file, which needs to be created before installing the chart. You need to set the attribute `data.pg_su_password` to the Postgres password that you want (base64-encoded). You also need to set the attribute `pg_repl_password`, which is the replication password and is also base64-encoded, to the value you want.
 
 ```yaml
 apiVersion: v1
@@ -653,15 +701,15 @@ To create the secret object, run the `kubectl create -f {secrets_file}` command.
 
 Finally, when installing the chart you need to set the following two values to the name of the secret created previously (`user-provided-postgressql`): `global.datastores.postgressql.auth.authSecretName` and `postgressql.auth.authSecretName`.
 
-If you do not create the secret object, the installation creates a secret object that contains randomly generated passwords when the Helm chart is installed. For security reasons you need to change the automatically generated passwords when the deployment is complete.
+If you do not create the secret object, the installation creates a secret object that contains randomly generated passwords when the Helm chart is installed. For security reasons, you need to change the automatically generated passwords when the deployment is complete.
 
 #### Create Local Persistent Volumes to persist data
 
-If either STT customization, TTS customization, or STT async are included in the installation (see the previous section *Select the Components to Install*) an instance of the PostgreSQL database is installed. Additionally, if the STT async component is included in the installation, an instance of the RabbitMQ datastore is installed. The datastores are stateful and need to leverage Kubernetes persistent volumes to persist their data.
+If either STT customization, TTS customization, or STT async are included in the installation (see the previous section *Select the Components to Install*), an instance of the PostgreSQL database is installed. Additionally, if the STT async component is included in the installation, an instance of the RabbitMQ datastore is installed. The datastores are stateful and need to leverage Kubernetes persistent volumes to persist their data.
 
-PostgreSQL and RabbitMQ require the availability of Kubernetes Local Persistent Volumes, which must be created before you install the chart. The volumes are used to persist the data used by the datastores so if a container restarts it can reattach to the original data. Given that both PostgreSQL and RabbitMQ are configured by default for high availability (HA) with three replicas, a minimum of three volumes need to be installed for each of the datastores.
+PostgreSQL and RabbitMQ require the availability of Kubernetes Local Persistent Volumes, which must be created before you install the chart. The volumes are used to persist the data used by the datastores; if a container restarts, it can reattach to the original data. Given that both PostgreSQL and RabbitMQ are configured by default for high availability with three replicas, a minimum of three volumes need to be installed for each of the datastores.
 
-The Local Persistent Volumes can  be created by using the `createLocalPVs.sh` script provided within this chart, as explained in the installation instructions. Additionally, it is possible to manually create Local Persistent Volumes by using a template such as the following for each persistent volume that need to be created.
+The Local Persistent Volumes can be created by using the `createLocalPVs.sh` script that is provided within this chart, as explained in the installation instructions. Additionally, it is possible to manually create Local Persistent Volumes by using a template such as the following for each persistent volume that needs to be created.
 
 ```yaml
 apiVersion: v1
@@ -688,12 +736,12 @@ spec:
 ```
 
 where:
-  - `{name}` is the name of the Persistent Volume (PV) to be created, and needs to be unique.
+  - `{name}` is the name of the Persistent Volume (PV) to be created. The name must be unique.
   - `{size}` is the disk space that is allocated for the persistent volume.
-  - `{path}` is the path in the host machine where the persistent volume is created; for example, `/mnt/local-storage/storage/pv_1`. Note that the permissions of this directory need to be open enough to allow non-root access; otherwise, pods running as non-root are unable to mount the volume in the directory.
+  - `{path}` is the path on the host machine where the persistent volume is created; for example, `/mnt/local-storage/storage/pv_1`. Note that the permissions of this directory need to be open enough to allow non-root access; otherwise, pods running as non-root are unable to mount the volume in the directory.
   - `{node}` is the kubernetes *worker* node where the Local Volume is to be created. You can list the available nodes in your cluster by running `kubectl get nodes`.
 
-Given that PostgreSQL and RabbitMQ pods are scheduled in the worker nodes where the PVs are created, the PVs need to be created in different nodes so if a node goes down there are still at least two healthy replicas running. Recall that a minimum of three replicas are needed for high availability.
+Given that PostgreSQL and RabbitMQ pods are scheduled in the worker nodes where the PVs are created, the PVs need to be created in different nodes. That way, if a node goes down, there are still at least two healthy replicas running. Recall that a minimum of three replicas are needed for high availability.
 
 ## Resources Required
 
@@ -702,16 +750,16 @@ In addition to the general requirements listed in [Pre-installation tasks](https
   - `x86_64` is the only architecture supported at this time.
   - If you need a highly available installation, a minimum of three worker nodes are needed for the installation.
   - The resources required for the installation, in terms of CPUs and memory, depend on the configuration that you select. There are two typical installation configurations:
-    - The **development configuration**, which is the configuration that is used in the default installation, has a minimal footprint and is meant for development purposes and as a proof of concept. It can handle several concurrent recognition sessions only and it is not highly available because some of the core component have no redundancy (single replica).
+    - The **development configuration**, which is the configuration that is used in the default installation, has a minimal footprint and is meant for development purposes and as a proof of concept. It can only handle several concurrent recognition sessions and it is not highly available because some of the core component have no redundancy (single replica).
     - The **production configuration** is a highly available solution that is intended to run production workloads. This configuration can be achieved by scaling up the **development configuration** after installation, as described in the following section.
 
 ### Scaling up the **development configuration** to obtain a **production configuration**
 
-While the default installation of the solution comes with the **development configuration**, you can update it to the **production configuration** by scaling up the number of pods and replicas of the deployment objects after installing the solution. How much to scale up each of the components depends on the degree of concurrency you need, and is limited by the amount of hardware resources available in your Kubernetes cluster/namespace.
+The default installation of the solution comes with the **development configuration**. You can update it to the **production configuration** by scaling up the number of pods and replicas of the deployment objects after installing the solution. How much to scale up each of the components depends on the degree of concurrency you need. It is limited by the amount of hardware resources available in your Kubernetes cluster/namespace.
 
 #### Scaling up the PostgreSQL and RabbitMQ datastores
 
-By default both PostgreSQL and RabbitMQ are installed with three replicas for high availability reasons. Each replica is typically scheduled within a different Kubernetes worker node if resources allow. Before performing the installation, you can configure the number of replicas and the CPU and memory resources for each replica by using Helm values (see the *Options* section).
+By default, both PostgreSQL and RabbitMQ are installed with three replicas for high availability reasons. Each replica is typically scheduled within a different Kubernetes worker node if resources allow. Before performing the installation, you can configure the number of replicas and the CPU and memory resources for each replica by using Helm values (see the *Options* section).
 
 You can also scale up the datastores on an already running solution by changing the number of replicas in the Deployment or StatefulSet objects. For example, you can scale up RabbitMQ as follows:
 
@@ -719,9 +767,9 @@ You can also scale up the datastores on an already running solution by changing 
   1. Change the value of the `spec.replicas:` attribute.
   1. Save and close the StatefulSet object.
 
-In the case of PostgreSQL there are two deployment objects (`{release}-ibm-postgresql-proxy` and `{release}-ibm-postgresql-sentinel`) and a StatefulSet (`ibm-wc-ibm-postgresql-keeper`). The deployment objects can be scaled up by running `kubectl scale --replicas={n} {deployment_object}` where `{n}` is the new number of replicas; for example, `kubectl scale --replicas=3 deployment ibm-wc-ibm-postgresql-proxy`. The StatefulSet object can be scaled up by following the process described previously for PostgreSQL.  
+In the case of PostgreSQL, there are two deployment objects (`{release}-ibm-postgresql-proxy` and `{release}-ibm-postgresql-sentinel`) and a StatefulSet (`ibm-wc-ibm-postgresql-keeper`). The deployment objects can be scaled up by running `kubectl scale --replicas={n} {deployment_object}`, where `{n}` is the new number of replicas; for example, `kubectl scale --replicas=3 deployment ibm-wc-ibm-postgresql-proxy`. The StatefulSet object can be scaled up by following the process described previously for PostgreSQL.
 
-Note that a sufficient number of Persistent Local Volumes need to be created before scaling up the number of replicas (in the case of the StatefulSets) so the newly created pods can mount their volumes.
+Note that a sufficient number of Persistent Local Volumes need to be created before scaling up the number of replicas (in the case of the StatefulSets) so that the newly created pods can mount their volumes.
 
 #### Scaling up the rest of the solution
 
@@ -758,89 +806,83 @@ To choose resources for each of the session types, perform the following calcula
 
 #### STT Runtime (recognize)
 
-STT runtime requires `R=0.6` CPU per recognize session. The calculation is done as follows:
+STT runtime requires `R=0.6` CPUs per recognize session. The calculation is done as follows:
 
-1. Set the maximum number of sessions (`S`) you want to run in parallel; for example. `S=13`.
-2. Calculate number of CPUs (`N`) needed to process `S` sessions as follows: `N = S * R = S * 0.6`
+1. Set the maximum number of sessions (`S`) you want to run in parallel; for example, `S=13`.
+2. Calculate the number of CPUs (`N`) needed to process `S` sessions as follows: `N = S * R = S * 0.6`.
 3. Round up `N` to the closest integer.
 
 **Example**
 
-Let's assume that you want to run up to `13` recognize session in parallel.
+Assume that you want to run up to `13` recognize session in parallel:
 
  ```
     N = S * R = 13 * 0.6 = 7.8 ~= 8 [CPUs]
  ```
 
- You need to set the value `sttRuntime.groups.sttRuntimeDefault.resources.requestsCpu=8` during installation.
-
+You then need to set the value `sttRuntime.groups.sttRuntimeDefault.resources.requestsCpu=8` during installation.
 
 #### TTS Runtime (synthesize)
 
-TTS runtime requires `R=0.4` CPU per synthesis session. The calculation is done as follows:
+TTS runtime requires `R=0.4` CPUs per synthesis session. The calculation is done as follows:
 
 1. Set the maximum number of sessions (`S`) you want to run in parallel; for example, `S=13`.
-2. Calculate number of CPUs (`N`) needed to process `S` sessions as follows: `N = S * R`.
+2. Calculate the number of CPUs (`N`) needed to process `S` sessions as follows: `N = S * R`.
 3. Round up `N` to the closest integer.
 
 **Example**
 
-Let's assume that you want to run up to `13` synthesize sessions in parallel.
+Assume that you want to run up to `13` synthesize sessions in parallel:
 
 ```
     N = S * R = 13 * 0.4 = 5.2 ~= 6 [CPUs]
  ```
 
- You need to set the value `ttsRuntime.groups.ttsRuntimeDefault.resources.requestsCpu=6` during installation.
+You need to set the value `ttsRuntime.groups.ttsRuntimeDefault.resources.requestsCpu=6` during installation.
 
-With the TTS Runtime, it is also possible to change `R` by setting `global.ttsVoiceMarginalCPU` to achieve better *session:CPU* ratio without endangering *Real Time Factor*.
-
+With the TTS Runtime, it is also possible to change `R` by setting `global.ttsVoiceMarginalCPU` to achieve a better *session:CPU* ratio without endangering *Real Time Factor*.
 
 #### STT Customization Back-end (train)
 
-
-The STT Customization back-end requires at least 1 CPU per train session. However, a training session can be
-parallelized on its own because the most of the calculations in the back-end can run on multiple CPUs.
-One training session can use multiple threads (`T`) for processing, which means that one training session requires `T` CPUs per session.
-It is basically the same as setting `R=T` for STT runtime. Choosing `T>1` means faster training to some extent.
+The STT Customization back-end requires at least 1 CPU per training session. However, a training session can be parallelized on its own because most of the calculations in the back-end can run on multiple CPUs. One training session can use multiple threads (`T`) for processing, which means that one training session requires `T` CPUs per session. It is basically the same as setting `R=T` for STT runtime. Choosing `T>1` means faster training to some extent.
 
 The following table shows the relation between the number of threads and processing time (done with 112 minute of audio data):
 
-Threads | Traning duration [minutes] | Speed up (compared to 1 thread) |
---------|----------------------------|---------------------------------|
-1       | 118.6                      | 1.00                            |
-2       | 65.8                       | 1.80                            |
-3       | 49.2                       | 2.41                            |
-4       | 40.6                       | 2.92                            |
-5       | 37.6                       | 3.15                            |
-6       | 37.2                       | 3.19                            |
+Threads | Training duration [minutes] | Speed up (compared to 1 thread) |
+--------|-----------------------------|---------------------------------|
+1       | 118.6                       | 1.00                            |
+2       | 65.8                        | 1.80                            |
+3       | 49.2                        | 2.41                            |
+4       | 40.6                        | 2.92                            |
+5       | 37.6                        | 3.15                            |
+6       | 37.2                        | 3.19                            |
 
-As you can see, *speed up* start slowing down with `T=4`, so using more than 4 threads per session does not improve performance.
+As you can see, *speed up* starts slowing down with `T=4`, so using more than 4 threads per session does not improve performance.
 
-Overall calculation of CPU requirements for STT Customization back-end is done as follows. All input values must be whole numbers; for example, 1, 2, 3, 4, and so on.
+The overall calculation of CPU requirements for the STT Customization back-end is done as follows. All input values must be whole numbers; for example, 1, 2, 3, 4, and so on.
 
-1. Set the number of parallel train session (`S`) you want to run; for example, `S=2`.
+1. Set the number of parallel training sessions (`S`) you want to run; for example, `S=2`.
 1. Set the number of parallel threads per session (`T`) you want to utilize; for example, `T=2`.
-1. Calculate the number of CPUs (`N`) needed to process `S` session as follows: `N = S * T`.
+1. Calculate the number of CPUs (`N`) needed to process `S` sessions as follows: `N = S * T`.
 
 **Example**
 
- Let's assume that you want to run `2` training session in parallel with utilizing `3` threads per session to achieve reasonable performance.
+Assume that you want to run `2` training sessions in parallel and utilize `3` threads per session to achieve reasonable performance:
 
- ```
-    N = S * T = 2 * 3 = 6 [CPUs']
- ```
+```
+   N = S * T = 2 * 3 = 6 [CPUs']
+```
 
- You need to set following values:
- ```
-  sttAMPatcher.groups.sttAMPatcher.resources.requestsCpu=6
-  sttAMPatcher.groups.sttAMPatcher.resources.threads=3
- ```
+You need to set the following values:
+
+```
+   sttAMPatcher.groups.sttAMPatcher.resources.requestsCpu=6
+   sttAMPatcher.groups.sttAMPatcher.resources.threads=3
+```
 
 ### Dynamic resource calculation
 
-STT Runtime, TTS Runtime, and STT Customization Back-End supports automatic required memory resource calculation, which is based on the selected number of CPUs and the selected language models. Automatic resource calculation is enabled by default.
-You can modify this behavior by setting following values to `true` or `false` as needed:
+The STT Runtime, TTS Runtime, and STT Customization Back-End support automatic required memory resource calculation, which is based on the selected number of CPUs and the selected language models. Automatic resource calculation is enabled by default. You can modify this behavior by setting the following values to `true` or `false` as needed:
 
 ```
 sttRuntime.groups.sttRuntimeDefault.resources.dynamicMemory
@@ -850,7 +892,7 @@ sttAMPatcher.groups.sttAMPatcher.resources.dynamicMemory
 
 When you set any of the previous values to `false`, you must specify the required memory yourself (see *Options* section below).
 
-**Disclaimer**: Disabling automatic resource calculation is not recommended and can cause undesired service behavior.
+**Important**: Disabling automatic resource calculation is not recommended and can cause undesired service behavior.
 
 ## Configuration
 
@@ -858,28 +900,22 @@ The Helm chart has the following values that you can override by using the `--se
 
 ### Language model selection
 
-You can perform an installation that includes only a subset of the language models/voices in the catalog.
-Installing all of the models/voices in the catalog substantially increases the memory requirements.
-Therefore, it is strongly recommended that you install only those languages that you intend to use.
+You can perform an installation that includes only a subset of the language models/voices in the catalog. Installing all of the models/voices in the catalog substantially increases the memory requirements. Therefore, it is strongly recommended that you install only those languages that you intend to use.
 
-You can select the languages to be installed by checking or unchecking each of the models/voices in the
-`global.sttModels.*` or `global.ttsVoices.*` values. By default, the dynamic resource calculation
-feature is enabled; it automatically computes the exact amount of memory that is required for the selected models/voices.
+You can select the languages to be installed by checking or unchecking each of the models/voices in the `global.sttModels.*` or `global.ttsVoices.*` values. By default, the dynamic resource calculation feature is enabled; it automatically computes the exact amount of memory that is required for the selected models/voices.
 
-It is also possible to install ad hoc models/voices that was not released with this version. You need to download a special package containing data for the models/voices, upload it into the cluster the same way as main package, and specify the following options during installation.
+It is also possible to install ad hoc models/voices that were not released with this version. You need to download a special package that contains data for the models/voices, upload it into the cluster the same way as the main package, and specify the following options during installation.
 
 | Value                                           | Description                                             |
 |-------------------------------------------------|---------------------------------------------------------|
-| `global.sttModels.$modelName.catalogName`       | Model name as it is found in catalog.                   |
+| `global.sttModels.$modelName.catalogName`       | Model name as it is found in the catalog.                   |
 | `global.sttModels.$modelName.size`              | Memory footprint used to calculate memory requirements. |
-| `global.ttsVoices.$voiceName.catalogName`       | Voice name as it is found in catalog.                   |
+| `global.ttsVoices.$voiceName.catalogName`       | Voice name as it is found in the catalog.                   |
 | `global.ttsVoices.$voiceName.size`              | Memory footprint used to calculate memory requirements. |
 
 *Example:*
 
-Let's assume that there is a new broadband model for the Czech language that was released as an ad hoc model for the current Speech on ICP release. To enable it during update, specify following options during installation:
-
-In this example, `$modelName` is `csCSBroadbandModel` and `$catalogName` is `cs-CS_BroadBandModel`.
+Assume that there is a new broadband model for the Czech language that was released as an ad hoc model for the current Speech on ICP release. To enable it during update, specify following options during installation. In this example, `$modelName` is `csCSBroadbandModel`, and `$catalogName` is `cs-CS_BroadBandModel`.
 
 ```bash
    helm upgrade RELEASE CHART --set global.sttModels.csCSBroadbandModel.catalogName=cs-CS_BroadBandModel --set global.sttModels.csCSBroadbandModel.size=500 [OTHER-FLAGS]
@@ -895,31 +931,27 @@ The following options apply to an IBM Watson™ Speech Services runtime configur
 
 #### Components
 
-There are five components that can be enabled or disabled according to your needs. The main components are
-**Speech-to-Text runtime** and **Text-to-Speech runtime**. Additional components are **Speech-to-Text Customization**,
-**Text-to-Speech Customization**, and **Speech-to-Text Async**.
+There are five components that can be enabled or disabled according to your needs. The main components are **Speech-to-Text runtime** and **Text-to-Speech runtime**. Additional components are **Speech-to-Text Customization**, **Text-to-Speech Customization**, and **Speech-to-Text Async**.
 
 | Value                           | Description                                                                                                                                                                       | Default |
 |---------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `tags.sttRuntime`               | Speech-to-Text Runtime that is the base component for recognition. If you check any of the Speech-to-Text additional components, the Speech-to-Text runtime is enabled automatically. | `true`  |
-| `tags.ttsRuntime`               | Text-to-Speech Runtime that is the base component for recognition. If you check any of the Text-to-Speech additional components, the Text-to-Speech runtime is enabled automatically. | `true`  |
+| `tags.ttsRuntime`               | Text-to-Speech Runtime that is the base component for synthesis. If you check any of the Text-to-Speech additional components, the Text-to-Speech runtime is enabled automatically. | `true`  |
 | `tags.sttCustomization`         | Speech-to-Text Customization component. Enabling it also enables the Speech-to-Text runtime if `tags.sttRuntime=false`.                                                               | `true`  |
 | `tags.ttsCustomization`         | Text-to-Speech Customization component. Enabling it also enables the Text-to-Speech runtime if `tags.sttRuntime=false`.                                                               | `true`  |
 | `tags.sttAsync`                 | Speech-to-Text Async component.                                                                                                                                                   | `true`  |
-
 
 #### Datastores
 
 | Value                                               | Description                                                                                                                     | Default                      |
 |-----------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|------------------------------|
-| `external.minio.mode`                               | Sets Minio server mode (`standalone`, `distributed`).                                                                           | `distributed`                |
+| `external.minio.mode`                               | Minio server mode (`standalone`, `distributed`).                                                                                | `distributed`                |
 | `external.minio.persistence.size`                   | Size of persistent volume claim (PVC).                                                                                          | `100Gi`                      |
 | `external.minio.replicas`                           | Number of nodes (applicable only for Minio distributed mode). Must be 4 <= x <= 32.                                             | `4`                          |
 | `external.minio.minioAccessSecret`                  | Create a secret that contains base64-encoded accesskey (5 - 20 characters) and secretkey (8 - 40 characters). The keys are used to access the Minio Object Server. You need to create the secret in the same namespace in which you deploy the chart. | `minio`                                                   |
 | `global.datastores.minio.secretName`                | Minio object storage access secret name created as an installation prerequisite.                                                | `minio`                      |
 | `global.datastores.postgressql.auth.authSecretName` | PostgresSQL name of the secrets object that contains the credentials to access the datastore.                                   | `user-provided-postgressql`  |
 | `postgressql.auth.authSecretName`                   | PostgresSQL name of the secrets object that contains the credentials to access the datastore.                                   | `user-provided-postgressql`  |
-
 
 #### Anonymize logs and audio data
 
@@ -929,23 +961,22 @@ There are five components that can be enabled or disabled according to your need
 | `ttsRuntime.anonymizeLogs`          | Opt out of runtime logs and audio data.          | `False`  |
 | `sttAMPatcher.anonymizeLogs`        | Opt out of runtime logs and audio data.          | `False`  |
 
-
 #### Resources
 
 ##### Speech-to-Text runtime
 
 | Value                                                          | Description                                                                                                                              | Default   |
 |----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|-----------|
-| `sttRuntime.groups.sttRuntimeDefault.resources.dynamicMemory`  | Calculate memory requirements for STT runtime according to selected models. For more information, see the chart Overview.                | `True`    |
-| `sttRuntime.groups.sttRuntimeDefault.resources.requestsCpu`    | Requested CPUs for STT runtime. Minimal value is 4.                                                                                      | `8`       |
-| `sttRuntime.groups.sttRuntimeDefault.resources.requestsMemory` | Calculation of the memory requirements can be found in the chart Overview. When dynamic memory is enabled, this option has no effect.    | `22000Mi` |
+| `sttRuntime.groups.sttRuntimeDefault.resources.dynamicMemory`  | Calculate memory requirements for STT runtime according to selected models. For more information, see the chart overview.                | `True`    |
+| `sttRuntime.groups.sttRuntimeDefault.resources.requestsCpu`    | Requested CPUs for STT runtime. Minimum value is 4.                                                                                      | `8`       |
+| `sttRuntime.groups.sttRuntimeDefault.resources.requestsMemory` | Calculation of the memory requirements can be found in the chart overview. When dynamic memory is enabled, this option has no effect.    | `22000Mi` |
 
 ##### Speech-to-Text runtime
 
 | Value                                                          | Description                                                                                                                              | Default   |
 |----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|-----------|
 | `ttsRuntime.groups.ttsRuntimeDefault.resources.dynamicMemory`  | Calculate memory requirements for the TTS runtime according to the selected models. For more information, see the chart overview.                | `True`    |
-| `ttsRuntime.groups.ttsRuntimeDefault.resources.requestsCpu`    | Requested CPUs for the TTS runtime. Minimal value is 4.                                                                                      | `8`       |
+| `ttsRuntime.groups.ttsRuntimeDefault.resources.requestsCpu`    | Requested CPUs for the TTS runtime. Minimum value is 4.                                                                                      | `8`       |
 | `ttsRuntime.groups.ttsRuntimeDefault.resources.requestsMemory` | Calculation of the memory requirements can be found in the chart overview. When dynamic memory is enabled, this option has no effect.    | `22000Mi` |
 | `global.ttsVoiceMarginalCPU`                                   | TTS Voice marginal CPU used for synthesis. The value is in milli-CPUs.                                                                    | `400`     |
 
@@ -953,7 +984,7 @@ There are five components that can be enabled or disabled according to your need
 
 | Value                                                          | Description                                                                                                                              | Default   |
 |----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|-----------|
-| `sttAMPatcher.groups.sttAMPatcher.resources.dynamicMemory`     | Calculate memory requirements for STT AMC patcher according to the selected models. For more information, see the chart Overview.            | `True`    |
+| `sttAMPatcher.groups.sttAMPatcher.resources.dynamicMemory`     | Calculate memory requirements for STT AMC patcher according to the selected models. For more information, see the chart overview.            | `True`    |
 | `sttAMPatcher.groups.sttAMPatcher.resources.requestsCpu`       | Each customization session needs 4 CPUs.                                                                                                | `8`       |
 | `sttAMPatcher.groups.sttAMPatcher.resources.requestsMemory`    | The amount of memory depends on the number of CPUs. Size can be calculated as the number of CPUs * 3 GB.                                                      | `22000Mi` |
 | `sttAMPatcher.groups.sttAMPatcher.resources.threads`           | Number of parallel-processing threads for AMC. Note that fewer threads means longer training time.                                       | `4`       |
@@ -987,21 +1018,20 @@ There are five components that can be enabled or disabled according to your need
 
 | Value                                           | Description                                                               | Default |
 |-------------------------------------------------|---------------------------------------------------------------------------|---------|
-| `global.ttsVoices.enUSMichaelV3Voice.enabled`   | Whether to include the en-US Michael LPC Net Voice in the installation    | `True`  |
-| `global.ttsVoices.enUSAllisonV3Voice.enabled`   | Whether to include the en-US Allison LPC Net Voice in the installation    | `True`  |
-| `global.ttsVoices.enUSLisaV3Voice.enabled`      | Whether to include the en-US Lisa LPC Net Voice in the installation       | `True`  |
-| `global.ttsVoices.deDEBirgitV3Voice.enabled`    | Whether to include the de-DE Birgit LPC Net Voice in the installation     | `False` |
-| `global.ttsVoices.deDEDieterV3Voice.enabled`    | Whether to include the de-DE Dieter LPC Net Voice in the installation     | `False` |
-| `global.ttsVoices.enGBKateV3Voice.enabled`      | Whether to include the en-GB Kate LPC Net Voice in the installation       | `False` |
-| `global.ttsVoices.esLASofiaV3Voice.enabled`     | Whether to include the es-LA Sofia LPC Net Voice in the installation      | `False` |
-| `global.ttsVoices.esUSSofiaV3Voice.enabled`     | Whether to include the es-US Sofia LPC Net Voice in the installation      | `False` |
-| `global.ttsVoices.ptBRIsabelaV3Voice.enabled`   | Whether to include the pt-BR Isabela LPC Net Voice in the installation    | `False` |
-| `global.ttsVoices.esESEnriqueV3Voice.enabled`   | Whether to include the es-ES Enrique LPC Net Voice in the installation    | `False` |
-| `global.ttsVoices.esESLauraV3Voice.enabled`     | Whether to include the es-ES Laura LPC Net Voice in the installation      | `False` |
-| `global.ttsVoices.frFRReneeV3Voice.enabled`     | Whether to include the fr-FR Renee LPC Net Voice in the installation      | `False` |
-| `global.ttsVoices.itITFrancescaV3Voice.enabled` | Whether to include the it-IT Francesca LPC Net Voice in the installation  | `False` |
-| `global.ttsVoices.jaJPEmiVoice.enabled`         | Whether to include the ja-JP Emi Voice in the installation                | `False` |
-
+| `global.ttsVoices.enUSMichaelV3Voice.enabled`   | Whether to include the en-US Michael Neural Voice in the installation    | `True`  |
+| `global.ttsVoices.enUSAllisonV3Voice.enabled`   | Whether to include the en-US Allison Neural Voice in the installation    | `True`  |
+| `global.ttsVoices.enUSLisaV3Voice.enabled`      | Whether to include the en-US Lisa Neural Voice in the installation       | `True`  |
+| `global.ttsVoices.deDEBirgitV3Voice.enabled`    | Whether to include the de-DE Birgit Neural Voice in the installation     | `False` |
+| `global.ttsVoices.deDEDieterV3Voice.enabled`    | Whether to include the de-DE Dieter Neural Voice in the installation     | `False` |
+| `global.ttsVoices.enGBKateV3Voice.enabled`      | Whether to include the en-GB Kate Neural Voice in the installation       | `False` |
+| `global.ttsVoices.esLASofiaV3Voice.enabled`     | Whether to include the es-LA Sofia Neural Voice in the installation      | `False` |
+| `global.ttsVoices.esUSSofiaV3Voice.enabled`     | Whether to include the es-US Sofia Neural Voice in the installation      | `False` |
+| `global.ttsVoices.ptBRIsabelaV3Voice.enabled`   | Whether to include the pt-BR Isabela Neural Voice in the installation    | `False` |
+| `global.ttsVoices.esESEnriqueV3Voice.enabled`   | Whether to include the es-ES Enrique Neural Voice in the installation    | `False` |
+| `global.ttsVoices.esESLauraV3Voice.enabled`     | Whether to include the es-ES Laura Neural Voice in the installation      | `False` |
+| `global.ttsVoices.frFRReneeV3Voice.enabled`     | Whether to include the fr-FR Renee Neural Voice in the installation      | `False` |
+| `global.ttsVoices.itITFrancescaV3Voice.enabled` | Whether to include the it-IT Francesca Neural Voice in the installation  | `False` |
+| `global.ttsVoices.jaJPEmiV3Voice.enabled`         | Whether to include the ja-JP Emi Neural Voice in the installation                | `False` |
 
 ## Limitations
 
@@ -1025,5 +1055,4 @@ Watson services are currently organized into the following categories for differ
 -   **Speech**: Convert text and speech with the ability to customize models.
 -   **Vision**: Identify and tag content, and then analyze and extract detailed information that is found in images.
 
-
-_Copyright© IBM Corporation 2018, 2019. All Rights Reserved._
+_Copyright© IBM Corporation 2018, 2020. All Rights Reserved._
