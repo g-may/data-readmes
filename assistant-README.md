@@ -318,8 +318,6 @@ The ‘cluster-admin’ role is required to deploy IBM Watson Assistant.
 
     For more details, see [Creating persistent volumes](https://cloud.ibm.com/docs/services/assistant-data?topic=assistant-data-install-130#install-130-create-pvs).
 
-    **Note**: The documentation link takes you out of IBM Cloud Pak for Data to the public IBM Cloud.
-
 1.  Set up required security policies and labels.
     
     A set of scripts is provided with the Watson Assistant archive package. Use the scripts to set up the appropriate security policies. The provided scripts include:
@@ -562,7 +560,7 @@ The following tables lists the configurable parameters of the IBM Watson Assista
 
 ## Documentation
 
-Find out more about IBM Watson Assistant by reading the [product documentation](https://cloud.ibm.com/docs/services/assistant-data?topic=assistant-data-index).
+Find out more about IBM Watson Assistant by reading the [product documentation](https://cloud.ibm.com/docs/assistant-data?topic=assistant-data-index).
 
 **Note**: The documentation link takes you out of IBM Cloud Pak for Data to the public IBM Cloud.
 
