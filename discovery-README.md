@@ -31,7 +31,6 @@ Before installing Watson Discovery, you must install:
 - Watson Discovery must be deployed within the same namespace as IBM Cloud Pak for Data (by default the `zen` namespace).
 - A Watson Discovery deployment supports a single service instance.
 - Watson Discovery can currently run only on Intel 64-bit architecture.
-- Release names cannot exceed 13 characters
 - This chart should be used with the default image tags provided. Other image versions might be incompatible.
 - This chart must be installed through the CLI.
 - This chart must be installed by a ClusterAdministrator
@@ -54,8 +53,8 @@ For use:
 
 |                      | Minimum VPC available | Minimum RAM available |
 |----------------------|:---------------------:|:---------------------:|
-| Development (non-HA) | 21                    | 86 GB                 |
-| Production (HA)      | 26                    | 116 GB                |
+| Development (non-HA) | 16                    | 104 GB                |
+| Production (HA)      | 24                    | 159 GB                |
 
 
 ## Storage
@@ -64,16 +63,51 @@ Parenthetical numbers are the PVs required/created when deploying with the recom
 
 | Component      | Number of replicas | Space per PVC | Storage type            |
 |----------------|--------------------|---------------|-------------------------|
-| Postgres       |               2(3) |         10 Gi | portworx-sc |
-| Etcd           |                  3 |         10 Gi | portworx-sc |
-| Elastic        |               1(2) |         10 Gi | portworx-sc |
-| Elastic Backup |                  1 |         30 Gi | portworx-sc |
-| Minio          |                  4 |         25 Gi | portworx-sc |
-| MongoDB        |                  3 |         20 Gi | portworx-sc |
-| Hdp worker     |                  2 |        100 Gi | portworx-sc |
-| Hdp nn         |                  1 |         10 Gi | portworx-sc |
-| Core common    |                  1 |        100 Gi | portworx-sc |
-| Core ingestion |                  1 |          1 Gi | portworx-sc |
+| Postgres       |               2(3) |         20 Gi | portworx-db-gp3     |
+| Etcd           |                  3 |         10 Gi | portworx-db-gp3     |
+| Elastic Master |               1(3) |          2 Gi | portworx-db-gp3     |
+| Elastic Data   |               1(2) |         30 Gi | portworx-db-gp3     |
+| Elastic Backup |                  1 |         60 Gi | portworx-shared-gp2 |
+| Minio          |                  4 |         25 Gi | portworx-db-gp3     |
+| Hdp worker     |                  2 |        100 Gi | portworx-db-gp3     |
+| Hdp nn         |                  1 |         10 Gi | portworx-db-gp3     |
+| Core common    |                  1 |        100 Gi | portworx-shared-gp2 |
+| Core ingestion |                  1 |          1 Gi | portworx-shared-gp2 |
+
+If the `portworx-db-gp3` storage class does not exist in your cluster, but Portworx is installed, you can create it using the following command:
+```console
+kubectl apply -f - <<END
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: portworx-db-gp3
+parameters:
+  io_profile: db
+  repl: "3"
+provisioner: kubernetes.io/portworx-volume
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+END
+```
+
+If the `portworx-shared-gp2` storage class does not exist in your cluster, but Portworx is installed, you can create it using the following command:
+```console
+kubectl apply -f - <<END
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: portworx-shared-gp2
+parameters:
+  priority_io: high
+  repl: "2"
+  shared: "true"
+provisioner: kubernetes.io/portworx-volume
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+END
+```
 
 **Note:** Gluster File System (GlusterFS) is not a supported storage option for Watson Discovery.
 
@@ -103,17 +137,21 @@ If you're deploying to an OpenShift cluster, `helm` will be installed and config
     oc login https://{cluster_hostname}:8443 -u {user} -p {password}
     ```
 
-2. Log into the cluster's docker registry.
+2. Log into the cluster's docker registry using either `docker` or `podman`
 
     ```bash
     docker login $(oc get routes docker-registry -n default -o template={{.spec.host}}) -u {user} -p {password}
+    ```
+
+    ```bash
+    podman login $(oc get routes docker-registry -n default -o template={{.spec.host}}) -u {user} -p {password}
     ```
 
 3. Download Discovery from Passport Advantage (if you haven't already) and create a directory to extract its content to:
 
     ```
     mkdir ibm-watson-discovery-ppa
-    tar -xJf ibm-watson-discovery-2.1.1.tar.xz -C ibm-watson-discovery-ppa
+    tar -xJf ibm-watson-discovery-2.1.2.tar.xz -C ibm-watson-discovery-ppa
     cd ibm-watson-discovery-ppa
     ```
 
@@ -123,42 +161,33 @@ If you're deploying to an OpenShift cluster, `helm` will be installed and config
    mkdir ibm-discovery-content-intelligence-ppa
    tar -xJf <ci-service-ppa-archive>  -C ibm-discovery-content-intelligence-ppa
    ```
-4. If you're deploying to an OpenShift cluster, there is a good chance that you'll need to increase the system's virtual memory max map count. ElasticSearch will not start unless `vm.max_map_count` is greater than or equal to `262144`. This should be set automatically as part of the cluster provisioning script for IBM Cloud Private clusters, but will need to be done for an OpenShift cluster.
+4. If you're deploying to an OpenShift cluster, there is a good chance that you'll need to increase the system's virtual memory max map count. ElasticSearch will not start unless `vm.max_map_count` is greater than or equal to `262144`. This should be set automatically as part of the cluster provisioning script for IBM Cloud Private clusters, but will need to be done manually for an OpenShift cluster.
 
-To make these changes, add `vm.max_map_count=262144` to `/etc/sysctl.conf` on each node.
+To make these changes, run `systctl -w vm.max_map_count=262144`, and then add `vm.max_map_count=262144` to `/etc/sysctl.conf` on each node.
 
 
 ### Setting up an IBM Cloud Private environment
 
 **NOTE:** Skip this section if you are deploying to OpenShift. See [Setting up an OpenShift Environment](#setting-up-an-openshift-environment).
 
-1. Initialize Helm client by running the following command. For further details of Helm CLI setup, see [Installing the Helm CLI](https://www.ibm.com/support/knowledgecenter/SSBS6K_3.1.2/app_center/create_helm_cli.html).
-
-    ```bash
-    export HELM_HOME={helm_home_dir}
-    helm init --client-only
-    ```
-
-     - `{helm_home_dir}` is your Helm config directory. For example, `~/.helm`.
-
-2. Log into the Kubernetes cluster and target the namespace or project the chart will be deploy to. Use the `cloudctl` cli.
+1. Log into the Kubernetes cluster and target the namespace or project the chart will be deploy to. Use the `cloudctl` cli.
 
     ```bash
     cloudctl login -a https://{cluster_hostname}:8443 -u {user} -p {password}
     ```
 
 
-3. Log into the cluster's docker registry.
+2. Log into the cluster's docker registry.
 
     ```bash
     docker login {cluster_hostname}:8500 -u {user} -p {password}
     ```
 
-4. Download Discovery from Passport Advantage (if you haven't already) and create a directory to extract its content to:
+3. Download Discovery from Passport Advantage (if you haven't already) and create a directory to extract its content to:
 
     ```
     mkdir ibm-watson-discovery-ppa
-    tar -xJf ibm-watson-discovery-2.1.1.tar.xz -C ibm-watson-discovery-ppa
+    tar -xJf ibm-watson-discovery-2.1.2.tar.xz -C ibm-watson-discovery-ppa
     cd ibm-watson-discovery-ppa
     ```
 
@@ -169,38 +198,93 @@ To make these changes, add `vm.max_map_count=262144` to `/etc/sysctl.conf` on ea
    tar -xJf <ci-service-ppa-archive>  -C ibm-discovery-content-intelligence-ppa
    ```
 
-## Installing the Chart
+### Configuring Firewall Rules
 
-Installing the Helm chart deploys a single Watson Discovery application into an IBM Cloud Pak environment. You can deploy to  a `development` or `production` environment. By default, the chart will install in `Development` mode. See [High availability (Production) configuration](#high-availability-configuration) for instructions on deploying to `production`.
+**NOTE** If your cluster is running with a firewall between nodes, you must complete this step. Otherwise, skip to the next section.
 
+Perform the following tasks on every node of your cluster:
+1. Fix the ports that lockd uses. Edit `/etc/sysconfig/nfs` as following.
+   ```bash
+     # TCP port rpc.lockd should listen on.
+     LOCKD_TCPPORT=32803
+     # UDP port rpc.lockd should listen on.
+     LOCKD_UDPPORT=32769
+   ```
+2. Restart NFS services
+   ```bash
+     systemctl restart nfs-config
+     systemctl restart nfs-server
+   ```
+3. Confirm the ports used by `lockd` have been updated. If not, reboot the node. To check it, run `rpcinfo -p` and see the output. For instance, the output should have a part which looks like
+   ```bash
+     100021    1   udp  32769  nlockmgr
+     100021    3   udp  32769  nlockmgr
+     100021    4   udp  32769  nlockmgr
+     100021    1   tcp  32803  nlockmgr
+     100021    3   tcp  32803  nlockmgr
+     100021    4   tcp  32803  nlockmgr
+   ```
+4. Open required ports on firewall
+   ```bash
+     firewall-cmd --add-service=nfs --permanent
+     firewall-cmd --add-service=mountd --permanent
+     firewall-cmd --add-service=rpc-bind --permanent
+     firewall-cmd --add-port=32803/tcp --permanent
+     firewall-cmd --add-port=32769/udp --permanent
+     firewall-cmd --reload
+   ```
 
-To deploy Watson Discovery to your cluster, run the `deploy.sh` script from the `deploy` subdirectory.
-Run `./deploy.sh  -h` for help.
+## Loading Watson Discovery Docker images into your container registry
 
-Include the flag:
+Before you can install Watson Discovery, you must load all of the Docker images distributed as part of the PPA archive into the cluster's internal container registry using the `loadImages.sh` script from the `bin` subdirectory.
 
+* Run `./loadImages.sh -h` for help.
+* By default the script runs in non-interactive mode, so all arguments must be specified using command-line flags. Use `--interactive true` to run the script in interactive mode
+* The two required arguments to `loadImages.sh` are
+    * `--registry HOST_PORT`: The base URL of the registry you want to push the images to.
+    * `--namespace NAMESPACE`: The namespace of the cluster you will be installing Watson Discovery in.
+* The `loadImages.sh` script is compatible with both `docker` and `podman`. If both executables are installed and available on your PATH, Watson Discovery will always default to using
+`docker`. To override that behavior to use `podman`, or any other compatible docker container engine, use the `--exe` flag.
+
+### Loading Watson Discovery Docker images into an OpenShift container registry
+
+```bash
+  ./bin/loadImages.sh --registry $(oc get routes docker-registry -n default -o template={{.spec.host}}) --namespace {namespace}
 ```
- ./deploy.sh -d path/to/ibm-watson-discovery
+
+### Loading Watson Discovery Docker images into an IBM Cloud Private container registry
+
+```bash
+  ./bin/loadImages.sh --registry {cluster_hostname}:8500 --namespace {namespace}
 ```
 
-Your deploy command `-d` should point to the `ibm-watson-discovery` directory from the release artifact.
 
-**NOTE: If you are deploying to an IBM Cloud Private Foundations cluster you must add the `--openshift false` flag to your `./deploy.sh` command**
+## Installing Watson Discovery
 
-By default the `deploy.sh` script will look for tiller in the namespace that IBM Cloud Pak for Data is running in on an OpenShift cluster, or `kube-system` on an IBM Cloud Private Foundations cluster. If your tiller pod is located in a different namespace, you can override it with the `-w` flag.
+Installing Watson Discovery deploys a single Watson Discovery application into an IBM Cloud Pak environment. You can deploy to a `Development` or `Production` environment. **By default, Watson Discovery will install in `Development` mode.** See [High availability (Production) configuration](#high-availability-configuration) for instructions on deploying to `Production`.
 
-If you would like to change the value of a parameter from its default value, you must create a yaml file in `ibm-watson-discovery-ppa/deploy/`, overriding any values you want and then pass it in your command with `-O {override-file}.yaml`.
+To install Watson Discovery to your cluster, run the `installDiscovery.sh` script from the `bin` subdirectory.
 
-The name of the your helm release will be `{release-name-prefix}`. The total length of `{release-name-prefix}` must be [13 characters or less or the installation will fail](#important-restrictions-and-limitations). If you do not pass in `-e flag`, `{release-name-prefix}` the name will be `disco`.
+* Run `./installDiscovery.sh -h` for help.
+* By default the script runs in non-interactive mode, so all arguments must be specified using command-line flags. Use `--interactive true` to run the script in interactive mode.
+* The required arguments to `installDiscovery.sh` are
+    * `--cluster-pull-prefix PREFIX`: Specify where the cluster will pull Watson Discovery images from
+    * `--api-host HOSTNAME`: The host name (do not include a port or scheme in this value) to the Kubernetes API Endpoint for your cluster. You can retrieve this using `kubectl cluster-info`
+    * `--api-ip IP_ADDR`: The IPv4 address of the API host name provided to `--api-host`
+    * `--namespace NAMESPACE`: The namespace you want to install Watson Discovery into
+    * `--storageclass STORAGE_CLASS`: The name of the storage class to use for Watson Discovery's ReadWriteOnce storage. When using Portworx, Watson Discovery recommends `portworx-db-gp3`
+    * `--shared-storageclass STORAGE_CLASS`: The name of the storage class to use for Watson Discovery's ReadWriteMany storage. When using Portworx, Watson Discovery recommends `portworx-shared-gp2`
+* To install Watson Discovery in High Availability mode, append `--production` to your command.
+* If you would like to change the value of a parameter from its default value, you must create a yaml file, overriding any values you want in it and then pass it into your command with `--override {override-file}.yaml`.
 
 **If you've purchased and downloaded Discovery for Content Intelligence, you must install it now**:
-  1. Use the values provided in `ci-override.yaml` file under `ibm-discovery-content-intelligence-ppa` folder, i.e., run the deploy script with `-O ci-override.yaml`.  If you already have an `{override-file.yaml}`, first append these values of `ci-override.yaml` into your `<override-file.yaml>` and then run the deploy script with your `-O {override-file}.yaml`.
+  1. Use the values provided in `ci-override.yaml` file in the `ibm-discovery-content-intelligence-ppa` folder, i.e., run the deploy script with `--override ci-override.yaml`.  If you already have an `{override-file.yaml}`, first append these values of `ci-override.yaml` into your `<override-file.yaml>` and then run the deploy script with your `--override {override-file}.yaml`.
   2. After Discovery for Content Intelligence is installed, add the `Software Identification Tags` to the required pod: 
-  
+
+      ```bash
+      oc cp ibm-discovery-content-intelligence-ppa/ibm.com_IBM_Watson_Discovery_for_Cloud_Pak_for_Data_Content_Intelligence-2.1.0.swidtag core-discovery-gateway-0:/swidtag/ -c management
       ```
-      oc cp ibm-discovery-content-intelligence-ppa/ibm.com_IBM_Watson_Discovery_for_Cloud_Pak_for_Data_Content_Intelligence-2.1.0.swidtag "$(oc get pod | awk '{print $1}' | grep gateway-0)":/swidtag/
-      ```
-  
+
 **Note**: The `Discovery for Content Intelligence PPA` includes the tag file ending with `.swidtag`.
 
 **Tip**: Run `-h` to view the list of available flags and help.
@@ -209,23 +293,24 @@ The name of the your helm release will be `{release-name-prefix}`. The total len
 
 To deploy in High Availability (Production) mode,
 
-1. Create an `override.yaml` in `ibm-watson-discovery-ppa/deploy/`
+1. Append `--production` to your `installDiscovery.sh` command
 
-2. Add `global.deploymentType=Production` to your `override.yaml` file and specify the file with `-O override.yaml` in your deploy.sh command.
+### Verifying the Watson Discovery installation
 
-```
-cat > override.yaml << 'EOF'
-global:
-  deploymentType: "Production"
-EOF
-```
+#### On Linux
 
-### Verifying the Chart installation
-
-Run the command:
+From the `bin` subdirectory, run the command:
 
 ```bash
-$ helm test my-release --tls --tiller-namespace=<tiller-namespace>
+./linux/helm test core
+```
+
+#### On macOS
+
+From the `bin` subdirectory, run the command:
+
+```bash
+./macos/helm test core
 ```
 
 The installation is complete.
@@ -252,28 +337,32 @@ $ cd ibm-watson-discovery-language-pack
 $ mv ~/Downloads/ibm-watson-discovery-pack1-2.1.0.tar.xz .
 $ tar xJf ibm-watson-discovery-pack1-2.1.0.tar.xz
 $ ls .
-deploy  ibm-watson-discovery-pack1
+bin lib LICENSE README.md RELEASENOTES.md
 ```
 2. Verify you are authenticated with Docker and your cluster (`oc` on OpenShift, or `cloudctl` for IBM Cloud Private). (See [Setting up an OpenShift Environment](#setting-up-an-openshift-environment) or [Setting up an IBM Cloud Private environment](#setting-up-an-ibm-cloud-private-environment)).
 
-3. Run `deploy.sh`. The `-d` flag is required and must point at the `ibm-watson-discovery-pack1` directory from the unpacked archive. The `-e` flag is also required and you must provide the same release-name that you used for your Discovery install.
+3. Run `loadImages.sh` from the `bin` subdirectory using the `--registry` and `--namespace` as you did to load the Docker images for Watson Discovery previously.
+
+**NOTE** The copy of `loadImages.sh` from ibm-watson-discovery-pack1 and ibm-watson-discovery are not interchangeable.
+
+4. Run `installLanguagePack.sh` from the `bin` subdirectory. The required arguments are
+    * `--cluster-pull-prefix PREFIX`: Specify where the cluster will pull Watson Discovery images from
+    * `--namespace NAMESPACE`: The namespace Watson Discovery is currently installed in that you want to add the language pack to.
+
 
 ```bash
-$ ./deploy/deploy.sh -d ./ibm-watson-discovery-pack1 -e $discovery_install_name
+./installLanguagePack.sh --cluster-pull-prefix {registry}/{namespace} --namespace {namespace}
 ```
-
-**NOTE: If you are deploying to an IBM Cloud Private Foundations cluster you must add the `--openshift false` flag to your `./deploy.sh` command**
 
 ### Collecting OpenShift Support Logs
 
-From `ibm_cloud_pak/pak_extensions/common/`, run  `./openshiftCollector.sh -c OPENSHIFT_CLUSTER_HOST -n ICP4D_NAMESPACE -r HELM_RELEASE_NAME -u OPENSHIFT_ADMIN_USERNAME -p OPENSHIFT_ADMIN_PASSWORD`, where
+From the `bin` subdirectory of either the ibm-watson-discovery or ibm-watson-discovery-pack1 PPAs, run `./openshiftCollector.sh -c OPENSHIFT_CLUSTER_HOST -n ICP4D_NAMESPACE -u OPENSHIFT_ADMIN_USERNAME -p OPENSHIFT_ADMIN_PASSWORD`, where
 - `OPENSHIFT_CLUSTER_HOST` is the cluster without the protocol/port
 - `ICP4D_NAMESPACE` is the namespace where ICP4D is installed (usually `zen`).
 - `OPENSHIFT_ADMIN_USERNAME` is the username for the openshift administrator
 - `OPENSHIFT_ADMIN_PASSWORD` is the password for the openshift administrator
 
-
-For more information and options, run `./ibm_cloud_pak/pak_extensions/common/openshiftCollector.sh --help`
+For more information and options, run `./openshiftCollector.sh --help`
 
 This will produce a `.tgz` file in your current directory with the format `${OPENSHIFT_CLUSTER_HOST}_${DATE_TIME}.tgz`. This file will be what the support team can use to debug issues on the cluster.
 
@@ -281,17 +370,33 @@ You can follow the process of the log collection by running a command like `tail
 
 ### Uninstalling Watson Discovery
 
-To delete these resources from the `my-release` deployment that had been deployed in `my-namespace`, run this command:
+#### Uninstalling Watson Discovery 2.1.2
+
+To remove Watson Discovery from an OpenShift or IBM Cloud Private cluster, use the `uninstallDiscovery.sh` script provided in the `bin` subdirectory.
+
+* Use `./uninstallDiscovery.sh -h` for help.
+* The argument to `--namespace` should be the namespace Watson Discovery is running in
 
 ```bash
-kubectl delete --namespace=my-namespace all,configmaps,jobs,networkpolicies,poddisruptionbudgets,roles,rolebindings,clusterroles,clusterrolebindings,secrets,serviceaccounts --selector=release=my-release
+./uninstallDiscovery.sh --namespace {namespace}
+```
+
+By default this script will not remove persistent volume claims or specific secrets required to access or retrieve any data stored in Watson Discovery. To delete all objects associated with this instance of Watson Discovery, including any and all ingested data, include the `--force` flag.
+
+```bash
+./uninstallDiscovery.sh --namespace {namespace} --force
+```
+
+#### Uninstalling Watson Discovery 2.1.1, 2.1.0, 2.0.1, or 2.0.0
+
+If you are upgrading from Watson Discovery 2.1.1 or earlier you must uninstall that version of Watson Discovery before you can install Watson Discovery 2.1.2. To delete the resources from a previous Watson Discovery installation named `my-release` in `my-namespace`, run this command:
+
+```bash
+kubectl delete --namespace=my-namespace all,configmaps,jobs,networkpolicies,persistentvolumeclaims,poddisruptionbudgets,roles,rolebindings,clusterroles,clusterrolebindings,secrets,serviceaccounts --selector=release=my-release
 kubectl delete --namespace=my-namespace configmaps stolon-cluster-my-release-postgresql my-release.v1
 ```
 
-If you are sure you want to delete any persistent storage, first delete the Persistent Volume Claims:
-```bash
-kubectl delete --namespace=my-namespace persistentvolumeclaims --selector=release=my-release
-```
+**NOTE** You should run the backup scripts to export your data before performing this uninstallation procedure. Any data in Watson Discovery 2.1.1 will be deleted and unreachable after the uninstall completes. See the documentation on [backing up and restoring data](https://cloud.ibm.com/docs/services/discovery-data?topic=discovery-data-backup-restore) for more information.
 
 ## Security reference
 
