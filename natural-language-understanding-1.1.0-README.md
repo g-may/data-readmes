@@ -38,7 +38,9 @@ Secrets:
 
 ## Pre-install steps
 
-This script has to be run once per cluster by a cluster admin. Run: ./ibm_cloud_pak/pak_extensions/pre-install/ clusterAdministration/labelNamespace.sh ICP4D_NAMESPACE where ICP4D_NAMESPACE is the namespace where ICP4D is installed (usually zen).
+A cluster admin must run the following script one time for each cluster.
+```sh
+./ibm_cloud_pak/pak_extensions/pre-install/ clusterAdministration/labelNamespace.sh ICP4D_NAMESPACE
 
 The ICP4D_NAMESPACE namespace must have a label for the NetworkPolicy to correctly work. Only nginx and zen pods will be allowed to communicate with the pods in the namespace where this chart is installed.
 
